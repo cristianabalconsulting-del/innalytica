@@ -1,0 +1,42 @@
+name: Refrescar datos Power BI
+
+on:
+  schedule:
+    - cron: '0 5 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-data
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependencias
+        run: npm install --no-audit --no-fund
+      - name: Generar JSON por cliente
+        env:
+          AZURE_TENANT_ID:     ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID:     ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          PBI_WORKSPACE_ID:    ${{ secrets.PBI_WORKSPACE_ID }}
+          PBI_DATASET_ID:      ${{ secrets.PBI_DATASET_ID }}
+          POOL_SIZE:           '4'
+        run: node scripts/generate.js
+      - name: Commit de los datos
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/data
+          git commit -m "Refrescar datos" || echo "Sin cambios"
+          git push
