@@ -14,13 +14,13 @@ const DATASET_ID    = process.env.PBI_DATASET_ID;     // 174a154d-a484-48c9-9023
 const RESP_TTL_MS   = 300000;   // 5 min de caché de respuesta por (alojamiento, año)
 const QUERY_TIMEOUT = 12000;    // timeout máximo por consulta DAX (ms)
 const POOL_SIZE     = 14;       // máx consultas DAX simultáneas por petición
-const BUDGET_MS     = parseInt(process.env.PBI_BUDGET_MS) || 4500;  // Free=10s -> holgura para responder sin timeout
+const BUDGET_MS     = parseInt(process.env.PBI_BUDGET_MS) || 7500;  // cabe en el límite de 10s de Free
 const ESSENTIAL     = {kpi:1,ytdToday:1,mesActual:1,dp26:1,dp25:1,capDim:1,unitsCount:1,dpChan26:1,dpChan25:1,pace26:1,pace25:1,paceLead:1}; // se piden primero
 let   TOKEN_CACHE   = { token: null, exp: 0 };
 let   TOKEN_PROMISE = null;     // dedup de peticiones de token concurrentes
 const RESP_CACHE    = new Map(); // key `${aloj}|${year}` -> { exp, promise }
 const RESP_STALE    = new Map(); // último resultado bueno por clave (fallback ante fallo)
-const BLOB_TTL_MS   = 108000000; // 30h (los datos del modelo cambian 1 vez/día ~2am)
+const BLOB_TTL_MS   = 28800000; // 8h (recalcula al expirar para recoger el refresco diario)
 let   _blobStore    = undefined;
 async function _store(){
   if (_blobStore !== undefined) return _blobStore;
@@ -871,7 +871,7 @@ async function compute(year, aloj, budgetMs) {
   const { out, dropped } = await runQueries(token, queries, deadline);
   const data = processData(out, year);
   data.__complete = (dropped === 0);                            // true solo si NO faltó ninguna consulta
-  data.__refreshAt = await getLastRefreshMs(token);             // sello del refresco de PBI con el que se calculó
+  data.__refreshAt = 0;
   return data;
 }
 // Precálculo COMPLETO (sin límite de tiempo) -> caché compartida. Lo usa la función background.
@@ -951,19 +951,30 @@ exports.handler = async function(event, context) {
     // 1) Caché COMPARTIDA (Blobs) con datos COMPLETOS de ESTE cliente -> sirve al INSTANTE (flash).
     //    Stale-while-revalidate: si está algo vieja, igual la sirve YA y refresca en segundo plano.
     const blobShared = force ? null : await blobGet(cacheKey);
-    if (blobShared && blobShared.data && blobShared.data.__complete) {
-      // sirve al instante (flash). Cada ~15 min vuelve a comprobar (en segundo plano) si PBI
-      // se refrescó; el background recalcula SOLO si hubo un refresco nuevo (eficiente).
-      if (blobShared.exp <= Date.now() || (Date.now() - (blobShared.writtenAt || 0)) > 900000) {
-        triggerBackground(aloj, year);
-      }
-      return ok(blobShared.data);
+    if (blobShared && blobShared.data && blobShared.data.__complete && blobShared.exp > Date.now()) {
+      return ok(blobShared.data);   // caché FRESCA -> flash. Si expiró, abajo recalcula y actualiza.
     }
 
-    // 2) No hay caché completa de este cliente.
-    //    En plan Free el cálculo en vivo NO cabe en 10s (cuelga), así que NO lo intentamos:
-    //    disparamos el cálculo COMPLETO en segundo plano (15 min) y respondemos 'pending' al instante.
-    //    Cuando el segundo plano termina, lo deja en caché y la siguiente carga ya es flash.
+    // 2) No hay caché. Calcula EN VIVO con presupuesto (la función principal sí puede escribir Blobs),
+    //    deduplicando peticiones simultáneas del mismo cliente.
+    let result = null;
+    const inflight = RESP_CACHE.get(cacheKey);
+    if (!force && inflight && inflight.exp > Date.now()) {
+      try { result = await inflight.promise; } catch (e) { result = null; }
+    } else {
+      const p = compute(year, aloj, BUDGET_MS);
+      RESP_CACHE.set(cacheKey, { exp: Date.now() + 30000, promise: p });
+      try { result = await p; } catch (e) { console.error('[compute]', e.message); result = null; }
+    }
+    // 2a) Completo -> GUARDA en caché (Blobs) y sirve. La próxima carga ya es flash para todos.
+    if (result && result.__complete) {
+      blobSet(cacheKey, { exp: Date.now() + BLOB_TTL_MS, writtenAt: Date.now(), pbiRefreshAt: 0, data: result });
+      return ok(result);
+    }
+    // 2b) No completó (cliente muy grande en 10s): sirve el último COMPLETO si existe (aunque sea viejo).
+    const anyBlob = blobShared || await blobGet(cacheKey);
+    if (anyBlob && anyBlob.data && anyBlob.data.__complete) return ok(anyBlob.data);
+    // 2c) Nada todavía: intenta el segundo plano (por si el plan lo soporta) y responde 'pending'.
     triggerBackground(aloj, year);
     return ok({ pending: true, aloj: aloj, year: year });
 
