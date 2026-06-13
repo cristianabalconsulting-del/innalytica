@@ -4,6 +4,8 @@
 
 [functions]
   node_bundler = "esbuild"
+  # No empaquetar @netlify/blobs: usar la versión del runtime (con el contexto de Blobs inyectado)
+  external_node_modules = ["@netlify/blobs"]
 
 # Precalentamiento de la caché compartida (Todos) cada 10 minutos
 [functions."warm"]
