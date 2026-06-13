@@ -1,0 +1,22 @@
+[build]
+  functions = "netlify/functions"
+  publish   = "public"
+
+[functions]
+  node_bundler = "esbuild"
+
+# Precalentamiento de la caché compartida (Todos) cada 10 minutos
+[functions."warm"]
+  schedule = "*/10 * * * *"
+
+# Redirige /api/pbi-data a la Netlify Function
+[[redirects]]
+  from = "/api/pbi-data"
+  to   = "/.netlify/functions/pbi-data"
+  status = 200
+
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Cache-Control = "public, max-age=120"
