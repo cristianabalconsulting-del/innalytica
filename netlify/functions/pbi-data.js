@@ -43,18 +43,22 @@ let REFRESH_CHECK = { ms: 0, exp: 0 };
 async function getLastRefreshMs(token){
   if (REFRESH_CHECK.exp > Date.now()) return REFRESH_CHECK.ms;
   try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 3000);   // nunca bloquea más de 3s
     const url = `https://api.powerbi.com/v1.0/myorg/groups/${WORKSPACE_ID}/datasets/${DATASET_ID}/refreshes?$top=1`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    if (res.ok) {
+    let res;
+    try { res = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, signal: ctrl.signal }); }
+    finally { clearTimeout(timer); }
+    if (res && res.ok) {
       const j = await res.json();
       const r = j && j.value && j.value[0];
       const t = r && (r.endTime || r.startTime);
       const ms = t ? Date.parse(t) : 0;
-      REFRESH_CHECK = { ms: ms || REFRESH_CHECK.ms, exp: Date.now() + 300000 }; // cachea el chequeo 5 min
+      REFRESH_CHECK = { ms: ms || REFRESH_CHECK.ms, exp: Date.now() + 300000 };
       return REFRESH_CHECK.ms;
     }
   } catch (e) {}
-  REFRESH_CHECK = { ms: REFRESH_CHECK.ms, exp: Date.now() + 300000 };  // si no se puede leer, fallback temporal
+  REFRESH_CHECK = { ms: REFRESH_CHECK.ms, exp: Date.now() + 300000 };  // si falla/tarda -> sigue sin bloquear
   return REFRESH_CHECK.ms;
 }
 
