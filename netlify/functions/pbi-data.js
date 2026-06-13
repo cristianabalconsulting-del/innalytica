@@ -914,15 +914,17 @@ exports.handler = async function(event, context) {
     const year = parseInt(event.queryStringParameters?.year) || new Date().getFullYear();
     const aloj = String(event.queryStringParameters?.alojamiento || 'AB').replace(/[^A-Za-z0-9&\-_ |]/g,'').slice(0,800) || 'AB';
 
-    // Diagnóstico: ?diag=1 -> dice si la caché compartida (Blobs) está realmente disponible
+    // Diagnóstico: ?diag=1 -> muestra el paso y el error EXACTO de la caché (Blobs)
     if (event.queryStringParameters?.diag === '1') {
-      let blobs = 'fail', detail = '';
+      const r = { step: 'start' };
       try {
-        const st = await _store();
-        if (st) { await st.setJSON('__diag', { t: Date.now() }); const r = await st.get('__diag', { type: 'json' }); blobs = r ? 'OK' : 'read-null'; }
-        else detail = '@netlify/blobs no instalado (falta package.json o npm install)';
-      } catch (e) { detail = String(e.message || e); }
-      return { statusCode: 200, headers: Object.assign({}, headers, { 'Cache-Control': 'no-store' }), body: JSON.stringify({ blobs, detail }) };
+        r.step = 'import';   const m = await import('@netlify/blobs');           r.import = 'ok';
+        r.step = 'getStore'; const st = m.getStore('pbi-cache');                 r.getStore = 'ok';
+        r.step = 'write';    await st.setJSON('__diag', { t: Date.now() });      r.write = 'ok';
+        r.step = 'read';     const v = await st.get('__diag', { type: 'json' }); r.read = v ? 'ok' : 'null';
+        r.blobs = 'OK';
+      } catch (e) { r.blobs = 'fail'; r.error = String((e && e.name) || '') + ': ' + String((e && e.message) || e); }
+      return { statusCode: 200, headers: Object.assign({}, headers, { 'Cache-Control': 'no-store' }), body: JSON.stringify(r) };
     }
     const cacheKey = `${aloj}|${year}`;
     const force = event.queryStringParameters?.warm === '1';
