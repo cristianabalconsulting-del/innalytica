@@ -923,7 +923,7 @@ exports.handler = async function(event, context) {
 
   try {
     const year = parseInt(event.queryStringParameters?.year) || new Date().getFullYear();
-    const aloj = String(event.queryStringParameters?.alojamiento || 'AB').replace(/[^A-Za-z0-9&\-_ |]/g,'').slice(0,800) || 'AB';
+    const aloj = (String(event.queryStringParameters?.alojamiento || 'AB').replace(/[^A-Za-z0-9&\-_ |]/g,'').slice(0,800).toUpperCase()) || 'AB';  // normaliza may/min -> coincide con la caché
 
     // Diagnóstico: ?diag=1 -> muestra el paso y el error EXACTO de la caché (Blobs)
     if (event.queryStringParameters?.diag === '1') {
