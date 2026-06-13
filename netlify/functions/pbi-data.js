@@ -960,25 +960,10 @@ exports.handler = async function(event, context) {
       return ok(blobShared.data);
     }
 
-    // 2) No hay completo en caché: calcula en vivo con presupuesto, deduplicando peticiones simultáneas
-    let result = null;
-    const inflight = RESP_CACHE.get(cacheKey);
-    if (!force && inflight && inflight.exp > Date.now()) {
-      try { result = await inflight.promise; } catch (e) { result = null; }
-    } else {
-      const p = compute(year, aloj, BUDGET_MS);
-      RESP_CACHE.set(cacheKey, { exp: Date.now() + 30000, promise: p });
-      try { result = await p; } catch (e) { console.error('[compute]', e.message); result = null; }
-    }
-
-    // 2a) Si salió COMPLETO -> cachea en Blobs y sirve
-    if (result && result.__complete) {
-      blobSet(cacheKey, { exp: Date.now() + BLOB_TTL_MS, writtenAt: Date.now(), pbiRefreshAt: result.__refreshAt || 0, data: result });
-      return ok(result);
-    }
-
-    // 3) Incompleto y aún sin completo previo: NO se sirve parcial (evita datos de demo).
-    //    Dispara el cálculo completo en segundo plano y responde 'pending'.
+    // 2) No hay caché completa de este cliente.
+    //    En plan Free el cálculo en vivo NO cabe en 10s (cuelga), así que NO lo intentamos:
+    //    disparamos el cálculo COMPLETO en segundo plano (15 min) y respondemos 'pending' al instante.
+    //    Cuando el segundo plano termina, lo deja en caché y la siguiente carga ya es flash.
     triggerBackground(aloj, year);
     return ok({ pending: true, aloj: aloj, year: year });
 
