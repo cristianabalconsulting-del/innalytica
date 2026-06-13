@@ -13,7 +13,7 @@ const DATASET_ID    = process.env.PBI_DATASET_ID;     // 174a154d-a484-48c9-9023
 // ── Estado a nivel de módulo (se reutiliza entre invocaciones "warm") ──
 const RESP_TTL_MS   = 300000;   // 5 min de caché de respuesta por (alojamiento, año)
 const QUERY_TIMEOUT = 12000;    // timeout máximo por consulta DAX (ms)
-const POOL_SIZE     = 14;       // máx consultas DAX simultáneas por petición
+const POOL_SIZE     = parseInt(process.env.POOL_SIZE) || 14;  // configurable (generación usa pool bajo)
 const BUDGET_MS     = parseInt(process.env.PBI_BUDGET_MS) || 7500;  // cabe en el límite de 10s de Free
 const ESSENTIAL     = {kpi:1,ytdToday:1,mesActual:1,dp26:1,dp25:1,capDim:1,unitsCount:1,dpChan26:1,dpChan25:1,pace26:1,pace25:1,paceLead:1}; // se piden primero
 let   TOKEN_CACHE   = { token: null, exp: 0 };
