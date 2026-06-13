@@ -24,8 +24,15 @@ const BLOB_TTL_MS   = 108000000; // 30h (los datos del modelo cambian 1 vez/día
 let   _blobStore    = undefined;
 async function _store(){
   if (_blobStore !== undefined) return _blobStore;
-  try { const m = await import('@netlify/blobs'); _blobStore = m.getStore('pbi-cache'); console.log('[blobs] OK (caché compartida activa)'); }
-  catch (e) { _blobStore = null; console.error('[blobs] NO DISPONIBLE -> sin caché:', e.message); }
+  try {
+    const m = await import('@netlify/blobs');
+    const opts = { name: 'pbi-cache' };
+    const sid = process.env.NETLIFY_SITE_ID || process.env.SITE_ID;
+    const tok = process.env.NETLIFY_BLOBS_TOKEN || process.env.NETLIFY_API_TOKEN;
+    if (sid && tok) { opts.siteID = sid; opts.token = tok; }   // config manual si el auto-contexto falla
+    _blobStore = m.getStore(opts);
+    console.log('[blobs] OK (caché compartida activa)');
+  } catch (e) { _blobStore = null; console.error('[blobs] NO DISPONIBLE -> sin caché:', e.message); }
   return _blobStore;
 }
 async function blobGet(key){ try { const st = await _store(); if(!st) return null; return (await st.get(key,{type:'json'}))||null; } catch(e){ return null; } }
@@ -916,10 +923,13 @@ exports.handler = async function(event, context) {
 
     // Diagnóstico: ?diag=1 -> muestra el paso y el error EXACTO de la caché (Blobs)
     if (event.queryStringParameters?.diag === '1') {
-      const r = { step: 'start' };
+      const sid = process.env.NETLIFY_SITE_ID || process.env.SITE_ID;
+      const tok = process.env.NETLIFY_BLOBS_TOKEN || process.env.NETLIFY_API_TOKEN;
+      const r = { step: 'start', hasSiteID: !!sid, hasToken: !!tok };
       try {
         r.step = 'import';   const m = await import('@netlify/blobs');           r.import = 'ok';
-        r.step = 'getStore'; const st = m.getStore('pbi-cache');                 r.getStore = 'ok';
+        const opts = { name: 'pbi-cache' }; if (sid && tok) { opts.siteID = sid; opts.token = tok; }
+        r.step = 'getStore'; const st = m.getStore(opts);                        r.getStore = 'ok';
         r.step = 'write';    await st.setJSON('__diag', { t: Date.now() });      r.write = 'ok';
         r.step = 'read';     const v = await st.get('__diag', { type: 'json' }); r.read = v ? 'ok' : 'null';
         r.blobs = 'OK';
