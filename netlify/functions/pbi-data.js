@@ -14,7 +14,7 @@ const DATASET_ID    = process.env.PBI_DATASET_ID;     // 174a154d-a484-48c9-9023
 const RESP_TTL_MS   = 300000;   // 5 min de caché de respuesta por (alojamiento, año)
 const QUERY_TIMEOUT = 12000;    // timeout máximo por consulta DAX (ms)
 const POOL_SIZE     = 14;       // máx consultas DAX simultáneas por petición
-const BUDGET_MS     = parseInt(process.env.PBI_BUDGET_MS) || 8500; // presupuesto total para consultas (parciales si se excede)
+const BUDGET_MS     = parseInt(process.env.PBI_BUDGET_MS) || 4500;  // Free=10s -> holgura para responder sin timeout
 const ESSENTIAL     = {kpi:1,ytdToday:1,mesActual:1,dp26:1,dp25:1,capDim:1,unitsCount:1,dpChan26:1,dpChan25:1,pace26:1,pace25:1,paceLead:1}; // se piden primero
 let   TOKEN_CACHE   = { token: null, exp: 0 };
 let   TOKEN_PROMISE = null;     // dedup de peticiones de token concurrentes
@@ -24,8 +24,8 @@ const BLOB_TTL_MS   = 108000000; // 30h (los datos del modelo cambian 1 vez/día
 let   _blobStore    = undefined;
 async function _store(){
   if (_blobStore !== undefined) return _blobStore;
-  try { const m = await import('@netlify/blobs'); _blobStore = m.getStore('pbi-cache'); }
-  catch (e) { _blobStore = null; }   // Blobs no disponible -> degrada a caché en memoria
+  try { const m = await import('@netlify/blobs'); _blobStore = m.getStore('pbi-cache'); console.log('[blobs] OK (caché compartida activa)'); }
+  catch (e) { _blobStore = null; console.error('[blobs] NO DISPONIBLE -> sin caché:', e.message); }
   return _blobStore;
 }
 async function blobGet(key){ try { const st = await _store(); if(!st) return null; return (await st.get(key,{type:'json'}))||null; } catch(e){ return null; } }
@@ -914,6 +914,16 @@ exports.handler = async function(event, context) {
     const year = parseInt(event.queryStringParameters?.year) || new Date().getFullYear();
     const aloj = String(event.queryStringParameters?.alojamiento || 'AB').replace(/[^A-Za-z0-9&\-_ |]/g,'').slice(0,800) || 'AB';
 
+    // Diagnóstico: ?diag=1 -> dice si la caché compartida (Blobs) está realmente disponible
+    if (event.queryStringParameters?.diag === '1') {
+      let blobs = 'fail', detail = '';
+      try {
+        const st = await _store();
+        if (st) { await st.setJSON('__diag', { t: Date.now() }); const r = await st.get('__diag', { type: 'json' }); blobs = r ? 'OK' : 'read-null'; }
+        else detail = '@netlify/blobs no instalado (falta package.json o npm install)';
+      } catch (e) { detail = String(e.message || e); }
+      return { statusCode: 200, headers: Object.assign({}, headers, { 'Cache-Control': 'no-store' }), body: JSON.stringify({ blobs, detail }) };
+    }
     const cacheKey = `${aloj}|${year}`;
     const force = event.queryStringParameters?.warm === '1';
     // SIN caché de CDN (evita que se sirva un cliente por otro). La velocidad la da la caché Blobs.
