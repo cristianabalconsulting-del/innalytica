@@ -1,30 +1,40 @@
-name: Refrescar datos Power BI
+name: Datos + GitHub Pages
 
 on:
   schedule:
-    - cron: '0 5 * * *'
+    - cron: '0 2,5,8,11,14,17 * * *'
   workflow_dispatch: {}
+  push:
+    branches: [ main ]
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 concurrency:
-  group: refresh-data
+  group: pages
   cancel-in-progress: false
 
 jobs:
-  refresh:
+  build-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Node
+        if: github.event_name != 'push'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
       - name: Instalar dependencias
+        if: github.event_name != 'push'
         run: npm install --no-audit --no-fund
       - name: Generar JSON por cliente
+        if: github.event_name != 'push'
         env:
           AZURE_TENANT_ID:     ${{ secrets.AZURE_TENANT_ID }}
           AZURE_CLIENT_ID:     ${{ secrets.AZURE_CLIENT_ID }}
@@ -32,11 +42,22 @@ jobs:
           PBI_WORKSPACE_ID:    ${{ secrets.PBI_WORKSPACE_ID }}
           PBI_DATASET_ID:      ${{ secrets.PBI_DATASET_ID }}
           POOL_SIZE:           '4'
+          QUERY_SPACING_MS:    '800'
         run: node scripts/generate.js
       - name: Commit de los datos
+        if: github.event_name != 'push'
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add public/data
-          git commit -m "Refrescar datos" || echo "Sin cambios"
-          git push
+          git commit -m "Datos $(date -u '+%Y-%m-%d %H:%M UTC')" || echo "Sin cambios"
+          git push || echo "Nada que enviar"
+      - name: Configurar Pages
+        uses: actions/configure-pages@v5
+      - name: Subir artefacto
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - name: Publicar en GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
