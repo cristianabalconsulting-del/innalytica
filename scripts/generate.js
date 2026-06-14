@@ -8,7 +8,17 @@ const path = require('path');
 const lib = require('../netlify/functions/pbi-data.js');
 const { compute } = lib;
 
-const CLIENTS = ['AB','A3R','C&B','CAR','CF','CH','CLA','CLM','CYF','CYF2','EDE','ER','FE','GO','HG','HH','HO','HOM','KN','LCH','LH','MAR','MT','OSH','REN','SBS','SCO','SG','ST','URB','VIC','CAT','CAT CORDOBA','CAT PORTO','CAT SAN SEBASTIAN','CEL','CINC','MIN','MIN-2','SAS','SHM','VVB','ICN-ABAL-1668','ICN-ABAL-1740','ICN-ABAL-1799','ICN-ABAL-1835','ICN-ABAL-1847','ICN-ABAL-2377','ICN-ABAL-2628','ICN-ABAL-2667','ICN-ABAL-2936','__ALL__'];
+const FULL = ['AB','A3R','C&B','CAR','CF','CH','CLA','CLM','CYF','CYF2','EDE','ER','FE','GO','HG','HH','HO','HOM','KN','LCH','LH','MAR','MT','OSH','REN','SBS','SCO','SG','ST','URB','VIC','CAT','CAT CORDOBA','CAT PORTO','CAT SAN SEBASTIAN','CEL','CINC','MIN','MIN-2','SAS','SHM','VVB','ICN-ABAL-1668','ICN-ABAL-1740','ICN-ABAL-1799','ICN-ABAL-1835','ICN-ABAL-1847','ICN-ABAL-2377','ICN-ABAL-2628','ICN-ABAL-2667','ICN-ABAL-2936'];
+const HEAVY = ['MIN','CYF2','CLA','ICN-ABAL-1668','ICN-ABAL-1740','ICN-ABAL-1799','ICN-ABAL-1835','ICN-ABAL-1847','ICN-ABAL-2377','ICN-ABAL-2628','ICN-ABAL-2667','ICN-ABAL-2936'];
+function pickClients(){
+  if (process.env.CLIENTS) return process.env.CLIENTS.split(',').map(function(x){return x.trim();}).filter(Boolean);
+  const g = (process.env.GROUP || 'all').toLowerCase();
+  if (g === 'fast')  return FULL.filter(function(c){return HEAVY.indexOf(c) < 0;});
+  if (g === 'heavy') return HEAVY.concat(['__ALL__']);
+  return FULL.concat(['__ALL__']);   // all
+}
+const CLIENTS = pickClients();
+console.log('Clientes a generar:', CLIENTS.join(', '));
 
 const YEAR = parseInt(process.env.DATA_YEAR) || new Date().getFullYear();
 const OUT  = path.join(__dirname, '..', 'public', 'data');
@@ -32,7 +42,7 @@ async function getLastRefresh() {
 async function tryOne(c) {
   try {
     const data = await compute(YEAR, c, 0);
-    if (data && data.__complete) { fs.writeFileSync(path.join(OUT, fileFor(c)), JSON.stringify(data)); console.log('OK   ', c); return true; }
+    if (data && data.__complete) { data.__generatedAt = new Date().toISOString(); fs.writeFileSync(path.join(OUT, fileFor(c)), JSON.stringify(data)); console.log('OK   ', c); return true; }
     console.log('INCOMPLETO', c); return false;
   } catch (e) { console.log('ERROR', c, e && e.message); return false; }
 }
