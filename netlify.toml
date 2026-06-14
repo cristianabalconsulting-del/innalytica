@@ -1,0 +1,20 @@
+[build]
+  functions = "netlify/functions"
+  publish   = "public"
+
+[functions]
+  node_bundler = "esbuild"
+  # No empaquetar @netlify/blobs: usar la versión del runtime (con el contexto de Blobs inyectado)
+  external_node_modules = ["@netlify/blobs"]
+
+# Redirige /api/pbi-data a la Netlify Function
+[[redirects]]
+  from = "/api/pbi-data"
+  to   = "/.netlify/functions/pbi-data"
+  status = 200
+
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Cache-Control = "public, max-age=120"
