@@ -1,0 +1,58 @@
+name: Datos Rápidos (4am)
+
+on:
+  schedule:
+    - cron: '0 2 * * *'      # 4:00 España (UTC+2)
+  workflow_dispatch: {}
+  push:
+    branches: [ main ]        # al cambiar el front -> solo republica Pages (no regenera)
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        if: github.event_name != 'push'
+        with:
+          node-version: '20'
+      - run: npm install --no-audit --no-fund
+        if: github.event_name != 'push'
+      - name: Generar clientes RÁPIDOS
+        if: github.event_name != 'push'
+        env:
+          AZURE_TENANT_ID:     ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID:     ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          PBI_WORKSPACE_ID:    ${{ secrets.PBI_WORKSPACE_ID }}
+          PBI_DATASET_ID:      ${{ secrets.PBI_DATASET_ID }}
+          QUERY_SPACING_MS:    '800'
+          QUERY_TIMEOUT_MS:    '60000'
+          GROUP:               'fast'
+        run: node scripts/generate.js
+      - name: Commit
+        if: github.event_name != 'push'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/data
+          git commit -m "Rápidos $(date -u '+%Y-%m-%d %H:%M UTC')" || echo "Sin cambios"
+          git push || echo "nada"
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - id: deployment
+        uses: actions/deploy-pages@v4
