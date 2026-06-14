@@ -103,8 +103,21 @@ async function _fetchToken() {
 // ── Ejecutar query DAX ───────────────────────────────────────────────
 function _sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 
+// Espaciador global opcional (para la generación masiva): limita el ritmo de consultas
+// y así no chocar con el límite de Power BI (120/min). 0 = sin límite (función en vivo).
+const QUERY_SPACING_MS = parseInt(process.env.QUERY_SPACING_MS) || 0;
+let _nextSlot = 0;
+async function _gate(){
+  if(!QUERY_SPACING_MS) return;
+  const now = Date.now();
+  const slot = Math.max(now, _nextSlot);
+  _nextSlot = slot + QUERY_SPACING_MS;
+  const wait = slot - now;
+  if(wait>0) await _sleep(wait);
+}
 async function daxQuery(token, query, attempt, deadline) {
   attempt = attempt || 0;
+  await _gate();
   const url = `https://api.powerbi.com/v1.0/myorg/groups/${WORKSPACE_ID}/datasets/${DATASET_ID}/executeQueries`;
   const budget = deadline ? (deadline - Date.now()) : QUERY_TIMEOUT;
   if (deadline && budget <= 250) throw new Error('deadline');           // sin tiempo: no la intentes
@@ -123,7 +136,7 @@ async function daxQuery(token, query, attempt, deadline) {
       if ((res.status === 429 || res.status >= 500) && attempt < 2 && (!deadline || Date.now() < deadline - 1200)) {
         const ra = parseInt(res.headers.get('Retry-After')) || 0;
         clearTimeout(timer);
-        await _sleep(ra ? ra * 1000 : 400 * (attempt + 1));
+        await _sleep(ra ? ra * 1000 : 5000);
         return daxQuery(token, query, attempt + 1, deadline);
       }
       const err = await res.text();
@@ -902,6 +915,7 @@ function triggerBackground(aloj, year) {
   } catch (e) {}
 }
 module.exports.compute = compute;
+module.exports.getToken = getToken;
 module.exports.warmClient = warmClient;
 module.exports.blobGet = blobGet;
 module.exports.blobSet = blobSet;
