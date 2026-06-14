@@ -107,7 +107,10 @@ function _sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 // y así no chocar con el límite de Power BI (120/min). 0 = sin límite (función en vivo).
 const QUERY_SPACING_MS = parseInt(process.env.QUERY_SPACING_MS) || 0;
 let _nextSlot = 0;
+let _pauseUntil = 0;   // pausa global tras un 429 (Power BI pide esperar)
 async function _gate(){
+  // respeta una pausa global si Power BI nos frenó
+  while(_pauseUntil > Date.now()){ await _sleep(Math.min(3000, _pauseUntil - Date.now())); }
   if(!QUERY_SPACING_MS) return;
   const now = Date.now();
   const slot = Math.max(now, _nextSlot);
@@ -132,14 +135,17 @@ async function daxQuery(token, query, attempt, deadline) {
       signal: ctrl.signal
     });
     if (!res.ok) {
-      // 429 (throttling) o 5xx: reintenta con backoff si aún queda presupuesto
-      if ((res.status === 429 || res.status >= 500) && attempt < 2 && (!deadline || Date.now() < deadline - 1200)) {
-        const ra = parseInt(res.headers.get('Retry-After')) || 0;
+      const err = await res.text();
+      // 429 (throttling) o 5xx: pausa GLOBAL el tiempo que pida PBI y reintenta
+      if ((res.status === 429 || res.status >= 500) && attempt < 6 && (!deadline || Date.now() < deadline - 1200)) {
+        let secs = parseInt(res.headers.get('Retry-After')) || 0;
+        if (!secs) { const m = String(err).match(/Retry in (\d+)\s*second/i); if (m) secs = parseInt(m[1]); }
+        if (!secs) secs = (res.status === 429 ? 30 : 5);
+        _pauseUntil = Math.max(_pauseUntil, Date.now() + secs * 1000 + 500);  // frena TODO el pipeline
         clearTimeout(timer);
-        await _sleep(ra ? ra * 1000 : 5000);
+        await _sleep(300);
         return daxQuery(token, query, attempt + 1, deadline);
       }
-      const err = await res.text();
       throw new Error(`DAX ${res.status}: ${err.slice(0,160)}`);
     }
     const data = await res.json();

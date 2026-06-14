@@ -39,21 +39,9 @@ async function tryOne(c) {
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
-  let prev = {};
-  try { prev = JSON.parse(fs.readFileSync(path.join(OUT, '_updated.json'), 'utf8')); } catch (e) {}
   let pbiRefresh = 0;
-  try { pbiRefresh = await getLastRefresh(); console.log('Último refresco PBI:', pbiRefresh ? new Date(pbiRefresh).toISOString() : '(desconocido)'); }
-  catch (e) { console.log('No se pudo leer el refresco de PBI:', e.message); }
-
-  if (!FORCE) {
-    if (pbiRefresh && prev.pbiRefresh && pbiRefresh <= prev.pbiRefresh) {
-      console.log('No hay refresco nuevo de Power BI. Salgo sin regenerar.'); return;
-    }
-    if (!pbiRefresh && prev.at && (Date.now() - Date.parse(prev.at) < 6 * 3600 * 1000)) {
-      console.log('Sin info de refresco y última generación hace <6h. Salgo.'); return;
-    }
-  }
-  console.log(FORCE ? 'Forzado: regenerando todo.' : 'Hay datos nuevos: regenerando todo.');
+  try { pbiRefresh = await getLastRefresh(); } catch (e) {}
+  console.log('Regenerando todos los clientes (horario fijo o manual)...');
 
   let pending = CLIENTS.slice();
   for (let pasada = 1; pasada <= 4 && pending.length; pasada++) {
