@@ -2,7 +2,7 @@ name: Datos Rápidos (4am)
 
 on:
   schedule:
-    - cron: '0 2 * * *'      # 4:00 España (UTC+2)
+    - cron: '17 2 * * *'     # 4:17 España (UTC+2) — minuto "raro" para que GitHub no lo retrase
   workflow_dispatch: {}
   push:
     branches: [ main ]        # al cambiar el front -> solo republica Pages (no regenera)
