@@ -792,7 +792,7 @@ function processData(raw, year) {
   const eventos = _ev.map(function(r){ return { d:(r[_ekd]||'').split('T')[0], city:(_ekc&&r[_ekc])?r[_ekc]:'', name:(_ekn&&r[_ekn])?r[_ekn]:'', festivo:(_ekf&&r[_ekf])?r[_ekf]:'' }; }).filter(function(x){return x.d&&x.name;});
   var _gv = raw.geo||[]; function _gk(sub){ var k=(_gv[0])?Object.keys(_gv[0]):[]; return k.find(function(x){return x.indexOf(sub)>=0;})||''; }
   var _gloc=_gk('Location'), _giso=_gk('Country ISO'), _greg=_gk('Region');
-  const geo = _gv.map(function(r){ return { city:(_gloc&&r[_gloc]!=null)?String(r[_gloc]):'', iso:(_giso&&r[_giso]!=null)?String(r[_giso]):'', region:(_greg&&r[_greg]!=null)?String(r[_greg]):'' }; }).filter(function(x){return x.city||x.iso;});
+  const geo = _gv.map(function(r){ var ci=(_gloc&&r[_gloc]!=null)?String(r[_gloc]):''; var i1=(_giso&&r[_giso]!=null)?String(r[_giso]).trim():''; var i2=(_greg&&r[_greg]!=null)?String(r[_greg]).trim():''; var iso=(i1&&i1!=='-')?i1:((i2&&i2!=='-')?i2:''); return { city:ci, iso:iso, region:'' }; }).filter(function(x){return x.city||x.iso;});
 
   // Cancelaciones por canal
   const cancCh = (raw.cancCh || []).map(r => ({
