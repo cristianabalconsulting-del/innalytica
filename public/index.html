@@ -4688,6 +4688,37 @@ function renderBookerSection(y,m,d,ev){
 })();
 
 </script>
+
+<script id="pickup-window-fix">
+(function(){
+  var last=null;
+  function iso(dt){return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');}
+  function win(pd, days){
+    var today=new Date(); var cut=new Date(today.getTime()-(days-1)*86400000);
+    var c=iso(cut), t=iso(today); var o={bk:0,rn:0,rev:0,cbk:0,crn:0,crev:0};
+    pd.forEach(function(r){ if(r.d>=c && r.d<=t){ o.bk+=r.bk||0;o.rn+=r.rn||0;o.rev+=r.rev||0;o.cbk+=r.cbk||0;o.crn+=r.crn||0;o.crev+=r.crev||0; } });
+    return o;
+  }
+  function build(){
+    var ab=window.__AB; if(!ab||!ab.pickupDaily||!ab.pickupDaily.length) return;
+    var cyYear=ab.year||new Date().getFullYear();
+    var pd=ab.pickupDaily.filter(function(r){return r.y===cyYear;}); if(!pd.length) pd=ab.pickupDaily;
+    var nw={};
+    [1,7,14,30].forEach(function(w){ var s=win(pd,w); nw[w]={bk:s.bk,rn:s.rn,rev:Math.round(s.rev),adr:s.rn?+(s.rev/s.rn).toFixed(1):0,cbk:s.cbk,crn:s.crn,crev:Math.round(s.crev)}; });
+    window.PKW_DATA=nw;
+    try{ if(typeof setPickupWindow==='function'){ var on=document.querySelector('#page-pickup .win-btn.on'); setPickupWindow(window.currentPickupDays||1, on); } }catch(e){}
+    var el=document.getElementById('c-pickup-net');
+    if(el && window.Chart){
+      var today=new Date(); var labels=[]; var nb=[]; var nc=[];
+      for(var i=29;i>=0;i--){ var dt=new Date(today.getTime()-i*86400000); var ds=iso(dt); var b=0,cc=0; pd.forEach(function(r){ if(r.d===ds){ b+=r.bk||0; cc+=r.cbk||0; } }); var p=ds.split('-'); labels.push(p[2]+'/'+p[1]); nb.push(b); nc.push(-cc); }
+      try{var ex=Chart.getChart(el); if(ex)ex.destroy();}catch(e){}
+      new Chart(el,{type:'bar',data:{labels:labels,datasets:[{label:'Nuevas',data:nb,backgroundColor:'rgba(47,140,255,0.7)',borderRadius:2,stack:'s'},{label:'Canceladas',data:nc,backgroundColor:'rgba(224,107,107,0.6)',borderRadius:2,stack:'s'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,ticks:{color:'#4A5A72',font:{size:8},maxRotation:0,autoSkip:true,maxTicksLimit:10},grid:{display:false}},y:{stacked:true,ticks:{color:'#4A5A72',font:{size:9}},grid:{color:'#1A2C44'}}}}});
+    }
+  }
+  setInterval(function(){ var a=window.__AB; if(a&&a!==last&&a.pickupDaily){ last=a; try{build();}catch(e){console.error('pkw',e);} } },800);
+})();
+
+</script>
 </body></html>"></iframe></div></div>
   <div class="page" id="page-market">
 
