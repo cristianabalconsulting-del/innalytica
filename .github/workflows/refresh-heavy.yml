@@ -33,6 +33,8 @@ jobs:
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           PBI_WORKSPACE_ID:    ${{ secrets.PBI_WORKSPACE_ID }}
           PBI_DATASET_ID:      ${{ secrets.PBI_DATASET_ID }}
+          TICKETMASTER_KEY:    ${{ secrets.TICKETMASTER_KEY }}
+          CALENDARIFIC_KEY:    ${{ secrets.CALENDARIFIC_KEY }}
           QUERY_SPACING_MS:    '600'
           QUERY_TIMEOUT_MS:    '180000'
           GROUP:               'heavy'
