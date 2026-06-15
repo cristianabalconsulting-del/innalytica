@@ -7698,16 +7698,19 @@ function pdToggleExp(g, el){
   var open=box.classList.toggle('show');
   el.style.transform=open?'rotate(180deg)':'';
 }
+window.PD_hidden=window.PD_hidden||{};
+function togglePDcol(key){ if(!window.PD_hidden)window.PD_hidden={}; PD_hidden[key]=!PD_hidden[key]; updatePDpills(); refreshPDtable(); if(typeof updateDD2summary==='function')updateDD2summary('pace'); }
 function updatePDpills(){
   var c=document.getElementById('pd-active-kpis'); if(!c) return;
+  if(!window.PD_hidden)window.PD_hidden={};
   var k=getActivePDkpis(); var h='';
-  k.forEach(function(key){ h+='<span class="dd-kpi-pill">'+PD_KPIS[key].n.replace(/^\d+\.\s/,'')+'</span>'; });
+  k.forEach(function(key){ var off=!!PD_hidden[key]; h+='<span class="dd-kpi-pill" onclick="togglePDcol(\''+key+'\')" title="Clic para mostrar/ocultar columna" style="cursor:pointer'+(off?';opacity:.4;text-decoration:line-through':'')+'">'+(off?'☐ ':'☑ ')+PD_KPIS[key].n.replace(/^\d+\.\s/,'')+'</span>'; });
   c.innerHTML=h||'<span style="font-size:10px;color:var(--t5)">Ninguna</span>';
 }
 function refreshPDtable(){
   var thead=document.getElementById('pd-thead'), tbody=document.getElementById('pd-tbody');
   if(!thead||!tbody) return;
-  var kpis=getActivePDkpis();
+  var kpis=getActivePDkpis().filter(function(k){return !(window.PD_hidden&&PD_hidden[k]);});
   if(kpis.length===0){ thead.innerHTML=''; tbody.innerHTML='<tr><td style="text-align:center;padding:20px;color:var(--t5)">Selecciona al menos un grupo de métricas</td></tr>'; return; }
   var gLabels={otb:'On The Books',pace:'Ritmo vs LY',pickup:'Pick-up',pricing:'Precio',gap:'Brecha vs objetivo'};
   var gOrder=['otb','pace','pickup','pricing','gap'];
@@ -7856,16 +7859,19 @@ function setKDwindow(w, el){
   ['pk_rn','pk_rev','pk_adr','pk_bk'].forEach(function(k){ if(KD_KPIS[k]&&KD_PK_BASE[k]){ KD_KPIS[k].cy=KD_PK_BASE[k][w]; KD_KPIS[k].ly=KD_PK_LY[k][w]; } });
   updateKDpills(); refreshKDtable(); if(typeof updateDD2summary==='function') updateDD2summary('pickup');
 }
+window.KD_hidden=window.KD_hidden||{};
+function toggleKDcol(key){ if(!window.KD_hidden)window.KD_hidden={}; KD_hidden[key]=!KD_hidden[key]; updateKDpills(); refreshKDtable(); if(typeof updateDD2summary==='function')updateDD2summary('pickup'); }
 function updateKDpills(){
   var c=document.getElementById('kd-active-kpis'); if(!c) return;
+  if(!window.KD_hidden)window.KD_hidden={};
   var k=getActiveKDkpis(); var h='';
-  k.forEach(function(key){ h+='<span class="dd-kpi-pill">'+KD_KPIS[key].n.replace(/^\d+\.\s/,'')+'</span>'; });
+  k.forEach(function(key){ var off=!!KD_hidden[key]; h+='<span class="dd-kpi-pill" onclick="toggleKDcol(\''+key+'\')" title="Clic para mostrar/ocultar columna" style="cursor:pointer'+(off?';opacity:.4;text-decoration:line-through':'')+'">'+(off?'☐ ':'☑ ')+KD_KPIS[key].n.replace(/^\d+\.\s/,'')+'</span>'; });
   c.innerHTML=h||'<span style="font-size:10px;color:var(--t5)">Ninguna</span>';
 }
 function refreshKDtable(){
   var thead=document.getElementById('kd-thead'), tbody=document.getElementById('kd-tbody');
   if(!thead||!tbody) return;
-  var kpis=getActiveKDkpis();
+  var kpis=getActiveKDkpis().filter(function(k){return !(window.KD_hidden&&KD_hidden[k]);});
   if(kpis.length===0){ thead.innerHTML=''; tbody.innerHTML='<tr><td style="text-align:center;padding:20px;color:var(--t5)">Selecciona al menos un grupo de métricas</td></tr>'; return; }
   var gLabels={pickup:'Pick-up',compare:'vs Año pasado',occupancy:'Ocupación',cancels:'Cancelaciones'};
   var gOrder=['pickup','compare','occupancy','cancels'];
@@ -10730,7 +10736,7 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
     var pm=paceM();
     if(!pm){ if(window.__origRefreshPD) return window.__origRefreshPD.apply(this,arguments); return; }
     updateTotals();
-    var kpis=(typeof getActivePDkpis==='function')?getActivePDkpis():[];
+    var kpis=((typeof getActivePDkpis==='function')?getActivePDkpis():[]).filter(function(k){return !(window.PD_hidden&&PD_hidden[k]);});
     if(!kpis.length){ thead.innerHTML=''; tbody.innerHTML='<tr><td style="text-align:center;padding:20px;color:var(--t5)">Selecciona al menos un grupo de métricas</td></tr>'; return; }
     var gLabels={otb:'On The Books',pace:'Ritmo vs LY',pickup:'Pick-up',pricing:'Precio',gap:'Brecha vs objetivo'};
     var gOrder=['otb','pace','pickup','pricing','gap'];
@@ -10838,7 +10844,7 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
     var thead=document.getElementById('kd-thead'), tbody=document.getElementById('kd-tbody');
     if(!thead||!tbody) return;
     var pm=pmonth(); if(!pm){ if(window.__origRefreshKD) return window.__origRefreshKD.apply(this,arguments); return; }
-    var kpis=(typeof getActiveKDkpis==='function')?getActiveKDkpis():[];
+    var kpis=((typeof getActiveKDkpis==='function')?getActiveKDkpis():[]).filter(function(k){return !(window.KD_hidden&&KD_hidden[k]);});
     if(!kpis.length){ thead.innerHTML=''; tbody.innerHTML='<tr><td style="text-align:center;padding:20px;color:var(--t5)">Selecciona al menos un grupo de métricas</td></tr>'; return; }
     var n=N(), ref=refToday(), from=new Date(ref.getTime()-n*86400000);
     var refLY=new Date(ref.getTime()-365*86400000), fromLY=new Date(refLY.getTime()-n*86400000);
