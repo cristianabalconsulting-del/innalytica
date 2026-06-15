@@ -10597,7 +10597,7 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
     // etiqueta de filtro
     var k=document.getElementById('ov-kpis');
     if(k){ var tag=document.getElementById('ov-filt-tag');
-      if(gs){ if(!tag){tag=document.createElement('div');tag.id='ov-filt-tag';tag.style.cssText='font-size:11px;color:var(--cyan);margin:-6px 0 8px';k.parentNode.insertBefore(tag,k);} tag.textContent='Filtrado · '+(gs.length>1?(gs.length+' propiedades'):('Grupo: '+gs[0])); }
+      if(gs){ if(!tag){tag=document.createElement('div');tag.id='ov-filt-tag';tag.style.cssText='font-size:11px;color:var(--cyan);margin:-6px 0 8px';k.parentNode.insertBefore(tag,k);} tag.textContent=window.__filtLabel||('Filtrado · '+(gs.length>1?(gs.length+' propiedades'):('Grupo: '+gs[0]))); }
       else if(tag){ tag.remove(); } }
   };
   // Handler global del selector Property (Overview + Pick Up)
@@ -12117,7 +12117,7 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
     var tree=buildTree(ab);
     if(!inst){ inst=MSW({ mountAfter:sel, sections:tree, labelAll:'Todas',
       makeLabel:function(s,all,lv){ if(all)return 'Todas'; if(!s.length)return 'Ninguna'; var gs=groupsFromSel(s,all); return gs.length===1?gs[0]:(gs.length+' propiedades'); },
-      onApply:function(s,all){ window.__gPropMulti(groupsFromSel(s,all)); } });
+      onApply:function(s,all){ try{window.__applySelLeaves(s,all);}catch(e){console.error(e);} } });
       window.__propMSW=inst;
     } else { inst.setTree(tree,true); }
   }
@@ -12339,42 +12339,26 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
 <script>console.log("%cINNALYTICA BUILD = B8-pickupfix","color:#5af3ff;font-weight:bold");window.__BUILD="B8-pickupfix";</script>
 
 <script id="global-propunit-filter">
-/* Filtro GLOBAL por propiedad/unidad: al seleccionar un grupo o una unidad en
-   #f-property, deriva internamente un dataset filtrado y re-renderiza TODO el front
-   reusando applyData() (el mismo motor del filtro de alojamiento).
-   - Grupo (Barrio/Mercado/Teatro): filtrado EXACTO (dp26 trae propiedad).
-   - Unidad (P-0, P-1...): exacto donde hay dato por unidad (revenue, reservas, ADR,
-     Sales, Deep Dives, Pick Up por unidad); noches/ocupación se estiman por el peso
-     de la unidad dentro de su grupo. Pestañas sin dato por unidad (Quality, Web, P&L,
-     Market, Pick Up diario/ventana) se mantienen a nivel cliente.
-   Es aditivo y a prueba de fallos: ante cualquier error vuelve al dataset completo. */
+/* Filtro GLOBAL por propiedad/unidad (conjunto de unidades). Deriva un dataset filtrado
+   y re-renderiza TODO el front reusando applyData(). salesDim es la tabla de hechos por
+   unidad (noches, reservas, revenue, comisión, canal, mercado, ventana), así que se
+   recalculan Channel, Markets/Booker, Cancelaciones y Quality por unidad/propiedad.
+   Quedan a nivel cliente solo lo que el modelo no desglosa: Market Data (percentiles),
+   Web Analytics y P&L (costes). Aditivo y a prueba de fallos. */
 (function(){
   'use strict';
-
   function num(x){ return (typeof x==='number'&&!isNaN(x))?x:0; }
-
-  // Mapa unidad -> grupo, dinámico desde los datos del cliente
-  function unitGroupMap(D){
-    var m={};
+  function unitGroupMap(D){ var m={};
     (D.dpUnit26||[]).forEach(function(r){ if(r&&r.unit&&!m[r.unit]) m[r.unit]=r.grp; });
     (D.salesDim||[]).forEach(function(r){ if(r&&r.unit&&!m[r.unit]) m[r.unit]=r.grp; });
-    return m;
-  }
-
-  // nº de unidades (del grupo dado, o totales si group vacío)
-  function unitCount(D, group){
-    var s={}, n=0;
-    (D.dpUnit26||[]).forEach(function(r){ if(r&&r.unit&&(!group||r.grp===group)&&!s[r.unit]){s[r.unit]=1;n++;} });
-    return n||1;
-  }
-
-  // Agrega filas dp (mes×propiedad) -> objeto tipo getMes/ytd (misma fórmula del front)
+    return m; }
+  function unitsByProp(D){ var m={}, seen={};
+    (D.dpUnit26||[]).forEach(function(r){ if(r&&r.grp&&r.unit&&!seen[r.grp+'|'+r.unit]){ seen[r.grp+'|'+r.unit]=1; (m[r.grp]=m[r.grp]||[]).push(r.unit); } });
+    return m; }
   function aggDP(rows){
     var t={rn:0,bk:0,ni:0,revT:0,revR:0,cm:0,cancBK:0,disp:0,oor:0};
-    (rows||[]).forEach(function(r){
-      t.rn+=num(r.rn);t.bk+=num(r.bk);t.ni+=num(r.ni);t.revT+=num(r.revT);
-      t.revR+=num(r.revR);t.cm+=num(r.cm);t.cancBK+=num(r.cancBK);t.disp+=num(r.disp);t.oor+=num(r.oor);
-    });
+    (rows||[]).forEach(function(r){ t.rn+=num(r.rn);t.bk+=num(r.bk);t.ni+=num(r.ni);t.revT+=num(r.revT);
+      t.revR+=num(r.revR);t.cm+=num(r.cm);t.cancBK+=num(r.cancBK);t.disp+=num(r.disp);t.oor+=num(r.oor); });
     var d=t.disp||1;
     t.occ=+(t.rn/d*100).toFixed(2); t.nocc=+(t.rn*0.95/d*100).toFixed(2);
     t.adrT=t.rn>0?+(t.revT/t.rn).toFixed(1):0; t.adrR=t.rn>0?+(t.revR/t.rn).toFixed(1):0;
@@ -12383,144 +12367,134 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
     t.revPAR=+(t.revT/d).toFixed(1); t.nRevPAR=+(t.nRevT/d).toFixed(1);
     t.cmPct=t.revT>0?+(t.cm/t.revT*100).toFixed(2):0;
     t.cancRate=t.bk>0?+(t.cancBK/(t.bk+t.cancBK)*100).toFixed(2):0;
-    return t;
-  }
-
-  // Share de una unidad dentro de su grupo (desde dpUnit anual)
-  function unitShares(dpUnitArr, group, unit){
-    var pu=0,pb=0,pr=0,uu=0,ub=0,ur=0;
-    (dpUnitArr||[]).forEach(function(r){
-      if(r&&r.grp===group){ pu+=num(r.rn); pb+=num(r.bk); pr+=num(r.rev);
-        if(r.unit===unit){ uu=num(r.rn); ub=num(r.bk); ur=num(r.rev); } }
-    });
-    var nU=unitCount({dpUnit26:dpUnitArr}, group);
-    return { rn: pu>0?uu/pu:1/nU, bk: pb>0?ub/pb:1/nU, rev: pr>0?ur/pr:1/nU, nU:nU };
-  }
-
-  // Construye el dataset filtrado
-  function deriveSel(full, sel){
-    if(!sel) return full;
-    var isUnit = sel.indexOf('U:')===0;
-    var unit = isUnit ? sel.slice(2) : '';
-    var u2g = unitGroupMap(full);
-    var group = isUnit ? (u2g[unit]||'') : sel;
-    if(isUnit && !group) return full; // unidad desconocida -> no filtrar
-
-    var D = Object.assign({}, full);
-    function byUnit(arr){ return (arr||[]).filter(function(r){return r&&r.unit===unit;}); }
-    function byGrp(arr){ return (arr||[]).filter(function(r){return r&&r.grp===group;}); }
-    var pick = isUnit ? byUnit : byGrp;
-
-    // Arrays con dimensión unidad/grupo -> filtrado EXACTO
-    D.salesDim   = pick(full.salesDim);
-    D.salesDimLY = pick(full.salesDimLY);
-    D.dpUnit26   = pick(full.dpUnit26);
-    D.dpUnit25   = pick(full.dpUnit25);
-    if(full.paceOTBdim)   D.paceOTBdim   = pick(full.paceOTBdim);
-    if(full.paceOTBdimLY) D.paceOTBdimLY = pick(full.paceOTBdimLY);
-
-    // dp26/dp25 (mes×propiedad)
-    if(isUnit){
-      var sh  = unitShares(full.dpUnit26, group, unit);
-      var shL = unitShares(full.dpUnit25, group, unit);
-      function scaleDP(arr, s){
-        return (arr||[]).filter(function(r){return r.p===group;}).map(function(r){
-          return { m:r.m, p:group,
-            rn:+(num(r.rn)*s.rn).toFixed(3), bk:+(num(r.bk)*s.bk).toFixed(3), ni:+(num(r.ni)*s.rn).toFixed(3),
-            revT:+(num(r.revT)*s.rev).toFixed(2), revR:+(num(r.revR)*s.rev).toFixed(2), cm:+(num(r.cm)*s.rev).toFixed(2),
-            cancBK:+(num(r.cancBK)*s.bk).toFixed(3), disp:+(num(r.disp)/s.nU).toFixed(2), oor:+(num(r.oor)/s.nU).toFixed(2) };
-        });
-      }
-      D.dp26 = scaleDP(full.dp26, sh);
-      D.dp25 = scaleDP(full.dp25, shL);
-    } else {
-      D.dp26 = (full.dp26||[]).filter(function(r){return r.p===group;});
-      D.dp25 = (full.dp25||[]).filter(function(r){return r.p===group;});
-    }
-
-    // ytd recomputado
-    D.ytd26 = Object.assign({}, full.ytd26, aggDP(D.dp26));
-    D.ytd25 = Object.assign({}, full.ytd25, aggDP(D.dp25));
-
-    // mesActual (mes vigente)
-    var curM = (full.mesActual && full.mesActual.m!=null) ? full.mesActual.m : (new Date().getMonth());
-    var cM = aggDP(D.dp26.filter(function(r){return r.m===curM;}));
-    var cL = aggDP(D.dp25.filter(function(r){return r.m===curM;}));
-    var ma = Object.assign({}, full.mesActual||{});
-    ma.rev=cM.revT; ma.rn=cM.rn; ma.adr=cM.adrT; ma.rev25=cL.revT; ma.rn25=cL.rn; ma.adr25=cL.adrT; ma.m=curM;
-    D.mesActual = ma;
-
-    // unidades / capacidad
-    var nAll = unitCount(full, '');
-    var nSel = isUnit ? 1 : unitCount(full, group);
-    D.units = Object.assign({}, full.units, {total:nSel});
-    if(full.capDim) D.capDim = full.capDim.map(function(x){ return Object.assign({}, x, {cap:Math.round(num(x.cap)*(nSel/nAll))}); });
-
-    // pace26/25 y pickup diario: escala proporcional por share de RN (no hay dim por unidad)
-    var shareRN = (full.ytd26 && full.ytd26.rn) ? (D.ytd26.rn/full.ytd26.rn) : (nSel/nAll);
-    var shareRNL= (full.ytd25 && full.ytd25.rn) ? (D.ytd25.rn/full.ytd25.rn) : (nSel/nAll);
-    if(full.pace26) D.pace26 = full.pace26.map(function(p){return Object.assign({}, p, {rn:+(num(p.rn)*shareRN).toFixed(1)});});
-    if(full.pace25) D.pace25 = full.pace25.map(function(p){return Object.assign({}, p, {rn:+(num(p.rn)*shareRNL).toFixed(1)});});
-    if(full.pu)     D.pu     = full.pu.map(function(p){return Object.assign({}, p, {c:+(num(p.c)*shareRN).toFixed(1), x:+(num(p.x)*shareRN).toFixed(1)});});
-
-    D.__sel = sel; D.__selGroup = group; D.__selUnit = unit;
-    return D;
-  }
-  window.__deriveSel = deriveSel;
-
-  // Captura del dataset completo del cliente (sin filtro)
+    return t; }
+  // recomputaciones desde salesDim/salesCanc filtrados
+  function chanFromSales(sd){ var m={};
+    (sd||[]).forEach(function(r){ var c=r.ch||'Otros'; m[c]=m[c]||{ch:c,bk:0,rn:0,rev:0,cm:0};
+      m[c].bk+=num(r.bk); m[c].rn+=num(r.rn); m[c].rev+=num(r.revR)+num(r.clean)+num(r.extra); m[c].cm+=num(r.comR)+num(r.comC); });
+    return Object.keys(m).map(function(k){return m[k];}).filter(function(x){return x.rn||x.bk;}); }
+  function bookerFromSales(sd){ var m={};
+    (sd||[]).forEach(function(r){ var c=r.mkt; if(!c||c==='?')return; m[c]=m[c]||{iso:c,bk:0,rn:0,rev:0,bw:0};
+      m[c].bk+=num(r.bk); m[c].rn+=num(r.rn); m[c].rev+=num(r.revR)+num(r.clean)+num(r.extra); m[c].bw+=num(r.bwsum); });
+    return Object.keys(m).map(function(k){var x=m[k]; return {iso:x.iso,bk:x.bk,rn:x.rn,rev:x.rev,
+      adr:x.rn?Math.round(x.rev/x.rn*10)/10:0, abv:x.bk?Math.round(x.rev/x.bk*100)/100:0,
+      los:x.bk?Math.round(x.rn/x.bk*100)/100:0, bw:x.rn?Math.round(x.bw/x.rn*10)/10:0};}); }
+  function cancChFromCanc(sc){ var m={};
+    (sc||[]).forEach(function(r){ var c=r.ch||'Otros'; m[c]=(m[c]||0)+num(r.cbk); });
+    return Object.keys(m).map(function(k){return {nm:k, c:m[k]};}).filter(function(x){return x.c;}); }
+  function deriveByUnits(full, selUnits, selGroups){
+    selUnits=selUnits||{}; selGroups=selGroups||{};
+    var u2g=unitGroupMap(full); var allUnits=Object.keys(u2g);
+    Object.keys(selGroups).forEach(function(g){ allUnits.forEach(function(u){ if(u2g[u]===g) selUnits[u]=true; }); });
+    var selU=Object.keys(selUnits);
+    if(!selU.length) return full;
+    if(allUnits.length && selU.length>=allUnits.length) return full;
+    var D=Object.assign({}, full);
+    function inSel(r){ return r && (selUnits[r.unit] || (r.grp&&selGroups[r.grp])); }
+    D.salesDim=(full.salesDim||[]).filter(inSel);
+    D.salesDimLY=(full.salesDimLY||[]).filter(inSel);
+    D.dpUnit26=(full.dpUnit26||[]).filter(inSel);
+    D.dpUnit25=(full.dpUnit25||[]).filter(inSel);
+    if(full.salesCanc)   D.salesCanc=(full.salesCanc||[]).filter(inSel);
+    if(full.salesCancLY) D.salesCancLY=(full.salesCancLY||[]).filter(inSel);
+    if(full.salesDay)    D.salesDay=(full.salesDay||[]).filter(inSel);
+    if(full.paceOTBdim)   D.paceOTBdim=(full.paceOTBdim||[]).filter(inSel);
+    if(full.paceOTBdimLY) D.paceOTBdimLY=(full.paceOTBdimLY||[]).filter(inSel);
+    function propShares(dpUnitArr){
+      var tot={}, sel={}, nT={}, nS={}, seenT={}, seenS={};
+      (dpUnitArr||[]).forEach(function(r){ if(!r||!r.grp)return; var g=r.grp;
+        tot[g]=tot[g]||{rn:0,bk:0,rev:0}; tot[g].rn+=num(r.rn);tot[g].bk+=num(r.bk);tot[g].rev+=num(r.rev);
+        if(r.unit&&!seenT[g+'|'+r.unit]){seenT[g+'|'+r.unit]=1; nT[g]=(nT[g]||0)+1;}
+        if(selUnits[r.unit]){ sel[g]=sel[g]||{rn:0,bk:0,rev:0}; sel[g].rn+=num(r.rn);sel[g].bk+=num(r.bk);sel[g].rev+=num(r.rev);
+          if(r.unit&&!seenS[g+'|'+r.unit]){seenS[g+'|'+r.unit]=1; nS[g]=(nS[g]||0)+1;} } });
+      var out={}; Object.keys(tot).forEach(function(g){ var t=tot[g], s=sel[g]||{rn:0,bk:0,rev:0};
+        out[g]={ rn:t.rn>0?s.rn/t.rn:0, bk:t.bk>0?s.bk/t.bk:0, rev:t.rev>0?s.rev/t.rev:0,
+                 nSel:nS[g]||0, nTot:nT[g]||1, full:(nS[g]||0)>0&&(nS[g]||0)===(nT[g]||0) }; });
+      return out; }
+    var sh=propShares(full.dpUnit26), shL=propShares(full.dpUnit25);
+    function buildDP(arr, shares){ var out=[];
+      (arr||[]).forEach(function(r){ var g=r.p; var s=shares[g];
+        if(selGroups[g]){ out.push(r); return; }
+        if(!s||s.nSel===0) return;
+        if(s.full){ out.push(r); return; }
+        out.push({ m:r.m, p:g,
+          rn:+(num(r.rn)*s.rn).toFixed(3), bk:+(num(r.bk)*s.bk).toFixed(3), ni:+(num(r.ni)*s.rn).toFixed(3),
+          revT:+(num(r.revT)*s.rev).toFixed(2), revR:+(num(r.revR)*s.rev).toFixed(2), cm:+(num(r.cm)*s.rev).toFixed(2),
+          cancBK:+(num(r.cancBK)*s.bk).toFixed(3), disp:+(num(r.disp)*(s.nSel/s.nTot)).toFixed(2), oor:+(num(r.oor)*(s.nSel/s.nTot)).toFixed(2) }); });
+      return out; }
+    D.dp26=buildDP(full.dp26, sh); D.dp25=buildDP(full.dp25, shL);
+    D.ytd26=Object.assign({}, full.ytd26, aggDP(D.dp26));
+    D.ytd25=Object.assign({}, full.ytd25, aggDP(D.dp25));
+    var curM=(full.mesActual&&full.mesActual.m!=null)?full.mesActual.m:(new Date().getMonth());
+    var cM=aggDP(D.dp26.filter(function(r){return r.m===curM;})), cL=aggDP(D.dp25.filter(function(r){return r.m===curM;}));
+    var ma=Object.assign({}, full.mesActual||{}); ma.rev=cM.revT;ma.rn=cM.rn;ma.adr=cM.adrT;ma.rev25=cL.revT;ma.rn25=cL.rn;ma.adr25=cL.adrT;ma.m=curM;
+    D.mesActual=ma;
+    var nAll=allUnits.length||1, nSel=selU.length;
+    D.units=Object.assign({}, full.units, {total:nSel});
+    if(full.capDim) D.capDim=full.capDim.map(function(x){ return Object.assign({}, x, {cap:Math.round(num(x.cap)*(nSel/nAll))}); });
+    var shareRN=(full.ytd26&&full.ytd26.rn)?(D.ytd26.rn/full.ytd26.rn):(nSel/nAll);
+    var shareRNL=(full.ytd25&&full.ytd25.rn)?(D.ytd25.rn/full.ytd25.rn):(nSel/nAll);
+    if(full.pace26) D.pace26=full.pace26.map(function(p){return Object.assign({}, p, {rn:+(num(p.rn)*shareRN).toFixed(1)});});
+    if(full.pace25) D.pace25=full.pace25.map(function(p){return Object.assign({}, p, {rn:+(num(p.rn)*shareRNL).toFixed(1)});});
+    if(full.pu) D.pu=full.pu.map(function(p){return Object.assign({}, p, {c:+(num(p.c)*shareRN).toFixed(1), x:+(num(p.x)*shareRN).toFixed(1)});});
+    // Channel / Markets / Cancelaciones / Quality desde datos granulares filtrados
+    if(full.dpChan26) D.dpChan26=chanFromSales(D.salesDim);
+    if(full.dpChan25) D.dpChan25=chanFromSales(D.salesDimLY);
+    if(full.booker)   D.booker=bookerFromSales(D.salesDim);
+    if(full.cancCh)   D.cancCh=cancChFromCanc(D.salesCanc||[]);
+    if(full.quality){ var q=Object.assign({}, full.quality);
+      var bu=(full.quality.byUnit||[]).filter(function(r){ return selUnits[r.unit] || (r.grp&&selGroups[r.grp]); });
+      if(bu.length){ q.byUnit=bu; var rv=bu.reduce(function(s,r){return s+num(r.reviews);},0)||1;
+        q.overall=Math.round(bu.reduce(function(s,r){return s+num(r.nota)*num(r.reviews);},0)/rv*100)/100; q.reviews=rv; }
+      if(full.quality.list) q.list=full.quality.list.filter(function(r){ return selUnits[r.unit] || (r.prop&&selGroups[r.prop]); });
+      D.quality=q; }
+    var propsTouched={}; selU.forEach(function(u){ if(u2g[u]) propsTouched[u2g[u]]=1; }); Object.keys(selGroups).forEach(function(g){propsTouched[g]=1;});
+    D.__selProps=Object.keys(propsTouched); D.__selUnits=selU;
+    return D; }
+  window.__deriveByUnits=deriveByUnits;
+  function selLabel(full, selU, props){
+    var ubp=unitsByProp(full);
+    if(selU.length===1) return 'Filtrado · Unidad: '+selU[0];
+    var allFull=props.length>0 && props.every(function(g){ var tot=(ubp[g]||[]).length; var cnt=(ubp[g]||[]).filter(function(u){return selU.indexOf(u)>=0;}).length; return tot>0&&cnt===tot; });
+    if(allFull) return props.length===1?('Filtrado · Grupo: '+props[0]):('Filtrado · '+props.length+' propiedades');
+    return 'Filtrado · '+selU.length+' unidades'; }
   var lastSeen=null;
-  setInterval(function(){
-    try{
-      if(window.__filtering) return;
-      if(window.__AB && window.__AB!==lastSeen){
-        lastSeen=window.__AB;
-        if(!window.__curSel) window.__AB_FULL=window.__AB;
-      }
-    }catch(e){}
-  },350);
-
-  // Reset del filtro al cambiar de cliente
-  function hookLoad(){
-    if(window.__loadHooked || !window.loadData) return;
-    window.__loadHooked=true;
+  setInterval(function(){ try{ if(window.__filtering) return;
+    if(window.__AB && window.__AB!==lastSeen){ lastSeen=window.__AB; if(!window.__curSel) window.__AB_FULL=window.__AB; } }catch(e){} },350);
+  function hookLoad(){ if(window.__loadHooked || !window.loadData) return; window.__loadHooked=true;
     var _ld=window.loadData;
-    window.loadData=function(){
-      window.__curSel=''; window.__AB_FULL=null; lastSeen=null;
-      var s=document.getElementById('f-property'); if(s) s.value='';
-      return _ld.apply(this, arguments);
-    };
-  }
+    window.loadData=function(){ window.__curSel=''; window.__AB_FULL=null; lastSeen=null; window.__filtLabel=''; return _ld.apply(this, arguments); }; }
   hookLoad(); setTimeout(hookLoad,800); setTimeout(hookLoad,2000);
-
-  // Aplica el filtro global y re-renderiza todo
-  window.__applyPropUnit=function(sel){
-    sel = sel||'';
-    var full = window.__AB_FULL || window.__AB;
-    if(!full){ return; }
-    window.__AB_FULL = full;
-    window.__curSel = sel;
-    var D;
-    try{ D = sel ? deriveSel(full, sel) : full; }
-    catch(e){ console.error('[propunit] derive', e); D = full; }
+  window.__applyCore=function(selUnits, selGroups){
+    var full=window.__AB_FULL||window.__AB; if(!full) return; window.__AB_FULL=full;
+    var hasSel=(selUnits&&Object.keys(selUnits).length)||(selGroups&&Object.keys(selGroups).length);
+    var D; try{ D=hasSel?deriveByUnits(full, Object.assign({},selUnits), Object.assign({},selGroups)):full; }
+    catch(e){ console.error('[propunit] derive', e); D=full; }
+    var isFull=(D===full); window.__curSel=isFull?'':'1';
     window.__filtering=true;
-    try{
-      if(window.applyData) window.applyData(D);
-    }catch(e){ console.error('[propunit] applyData', e); try{ if(window.applyData) window.applyData(full); }catch(_){} }
+    try{ if(window.applyData) window.applyData(D); }
+    catch(e){ console.error('[propunit] applyData', e); try{ if(window.applyData) window.applyData(full); }catch(_){} }
     window.__filtering=false;
-    // refrescos de tablas/overview que leen window.__AB
-    try{ if(window.GF){ window.GF.group=''; window.GF.groups=[]; } }catch(e){}
+    try{ if(window.GF){
+      if(isFull){ window.GF.group=''; window.GF.groups=[]; window.__filtLabel=''; }
+      else { window.GF.groups=(D.__selProps||[]).slice(); window.GF.group=(D.__selProps&&D.__selProps.length===1)?D.__selProps[0]:''; window.__filtLabel=selLabel(full, D.__selUnits||[], D.__selProps||[]); } } }catch(e){}
+    try{ window.__propGroups=[]; }catch(e){}
     try{ if(window.renderOverview) window.renderOverview(); }catch(e){}
-    try{ if(window.__rebuildClientTables) window.__rebuildClientTables(); }catch(e){}
-    try{ if(window.refreshDDtable) window.refreshDDtable(); }catch(e){}
+    ['__rebuildClientTables','__rebuildBooker','__rebuildQuality','__rebuildQualityExtra','__rebuildBW','__rebuildPUunit','__rebuildWeb','__rebuildPL','refreshDDtable','buildChannelStayedMain','buildBookerMap','buildBookerBubbleChart','renderBookerTable'].forEach(function(fn){ try{ if(typeof window[fn]==='function') window[fn](); }catch(e){} });
   };
-
-  // Sustituye el handler del selector Property por el filtro global
+  window.__applySelLeaves=function(leaves, all){
+    if(all){ window.__applyCore({}, {}); return; }
+    var selUnits={}, selGroups={};
+    (leaves||[]).forEach(function(l){ if(!l) return; var v=String(l.value||'');
+      if(v.indexOf('U:')===0){ selUnits[l.label]=true; }
+      else if(v.indexOf('G:')===0){ selGroups[l.group||l.label]=true; } });
+    window.__applyCore(selUnits, selGroups); };
+  window.__applyPropUnit=function(sel){ sel=sel||'';
+    if(!sel){ window.__applyCore({}, {}); return; }
+    if(sel.indexOf('U:')===0){ var o={}; o[sel.slice(2)]=true; window.__applyCore(o, {}); return; }
+    var g={}; g[sel]=true; window.__applyCore({}, g); };
   window.__gProp=function(v){ window.__applyPropUnit(v||''); };
-  window.__gPropMulti=function(groups){
-    if(groups && groups.length===1) window.__applyPropUnit(groups[0]);
-    else window.__applyPropUnit('');   // 0 o varios -> portfolio completo
-  };
+  window.__gPropMulti=function(groups){ if(groups&&groups.length){ var g={}; groups.forEach(function(x){g[x]=true;}); window.__applyCore({}, g); } else window.__applyCore({}, {}); };
 })();
 </script>
 </body>
