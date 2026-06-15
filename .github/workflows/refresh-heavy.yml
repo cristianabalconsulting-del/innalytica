@@ -2,7 +2,7 @@ name: Datos Pesados (5am)
 
 on:
   schedule:
-    - cron: '47 3 * * *'     # 5:47 España (UTC+2) — minuto "raro" para que GitHub no lo retrase
+    - cron: '47 3 * * *'     # 5:47 Espana (UTC+2) - minuto "raro" para que GitHub no lo retrase
   workflow_dispatch: {}
 
 permissions:
@@ -48,4 +48,5 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: public
-      - id: 
+      - id: deployment
+        uses: actions/deploy-pages@v4
