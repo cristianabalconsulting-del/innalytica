@@ -430,6 +430,7 @@ ytdToday: `EVALUATE ROW("Rev",CALCULATE(SUM('Informe Reservas Total'[ADR ING])+S
 
     eventos: `EVALUATE VAR _locs=CALCULATETABLE(VALUES(Habitaciones[Location]),Habitaciones[Alojamiento] IN ${alojIN}) RETURN CALCULATETABLE(SUMMARIZECOLUMNS('Eventos'[Día],'Eventos'[País/Ciudad],'Eventos'[Evento Resumen],'Eventos'[Festivo]),FILTER('Eventos','Eventos'[Día]>=${todayDAX}&&'Eventos'[Día]<=${todayDAX}+180&&'Eventos'[País/Ciudad] IN _locs)) ORDER BY 'Eventos'[Día] ASC`,
 
+    geo: `EVALUATE SUMMARIZECOLUMNS(Habitaciones[Location],Habitaciones[Country ISO],Habitaciones[Region],FILTER(Habitaciones,Habitaciones[Activo_Condicional]="Activo"&&Habitaciones[Alojamiento] IN ${alojIN}))`,
     cancCh: `EVALUATE SUMMARIZECOLUMNS(
       'Informe Reservas Total'[Source Filtro],
       FILTER(Habitaciones,Habitaciones[Activo_Condicional]="Activo"),FILTER('Informe Reservas Total',
@@ -789,6 +790,9 @@ function processData(raw, year) {
   var _ev=raw.eventos||[]; function _ek(sub){ var k=(_ev[0])?Object.keys(_ev[0]):[]; return k.find(function(x){return x.indexOf(sub)>=0;})||''; }
   var _ekd=_ek('Día')||_ek('a]'), _ekc=_ek('Ciudad'), _ekn=_ek('Evento Resumen'), _ekf=_ek('Festivo');
   const eventos = _ev.map(function(r){ return { d:(r[_ekd]||'').split('T')[0], city:(_ekc&&r[_ekc])?r[_ekc]:'', name:(_ekn&&r[_ekn])?r[_ekn]:'', festivo:(_ekf&&r[_ekf])?r[_ekf]:'' }; }).filter(function(x){return x.d&&x.name;});
+  var _gv = raw.geo||[]; function _gk(sub){ var k=(_gv[0])?Object.keys(_gv[0]):[]; return k.find(function(x){return x.indexOf(sub)>=0;})||''; }
+  var _gloc=_gk('Location'), _giso=_gk('Country ISO'), _greg=_gk('Region');
+  const geo = _gv.map(function(r){ return { city:(_gloc&&r[_gloc]!=null)?String(r[_gloc]):'', iso:(_giso&&r[_giso]!=null)?String(r[_giso]):'', region:(_greg&&r[_greg]!=null)?String(r[_greg]):'' }; }).filter(function(x){return x.city||x.iso;});
 
   // Cancelaciones por canal
   const cancCh = (raw.cancCh || []).map(r => ({
@@ -879,7 +883,7 @@ function processData(raw, year) {
     paceOTB, paceOTBLY, paceOTBD, paceOTBDLY,
     paceOTBdim, paceOTBdimLY, dims,
     dpUnit26, dpUnit25, dpChan26, dpChan25,
-    bwProp, bwChan, quality, market, web, pl, paceLead, bw, eventos,
+    bwProp, bwChan, quality, market, web, pl, paceLead, bw, eventos, geo,
     cancCh, booker
   };
 }
