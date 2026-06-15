@@ -12116,12 +12116,12 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
     sel.style.display='none';
     var tree=buildTree(ab);
     if(!inst){ inst=MSW({ mountAfter:sel, sections:tree, labelAll:'Todas',
-      makeLabel:function(s,all,lv){ if(all)return 'Todas'; if(!s.length)return 'Ninguna'; var gs=groupsFromSel(s,all); return gs.length===1?gs[0]:(gs.length+' propiedades'); },
+      makeLabel:function(s,all,lv){ if(all)return 'Todas'; if(!s.length)return 'Ninguna'; if(s.length===1)return s[0].label; var byG={},totG={}; (lv||[]).forEach(function(l){var g=l.group||'?'; totG[g]=(totG[g]||0)+1;}); s.forEach(function(l){var g=l.group||'?'; byG[g]=(byG[g]||0)+1;}); var gs=Object.keys(byG); var fu=gs.every(function(g){return byG[g]===totG[g];}); if(fu)return gs.length===1?gs[0]:(gs.length+' propiedades'); return s.length+' unidades'; },
       onApply:function(s,all){ try{window.__applySelLeaves(s,all);}catch(e){console.error(e);} } });
       window.__propMSW=inst;
     } else { inst.setTree(tree,true); }
   }
-  setInterval(function(){ var ab=window.__AB; if(!ab||!ab.dims)return; var key=(ab.dims.groups||[]).join(',')+'|'+(ab.dpUnit26||[]).length; if(key!==lastKey){ lastKey=key; try{mount(ab);}catch(e){console.error('propMSW',e);} } }, 800);
+  setInterval(function(){ var ab=window.__AB_FULL||window.__AB; if(!ab||!ab.dims)return; var key='s'+(window.__fullSeq||0)+'|'+(window.__aloj||''); if(key!==lastKey){ lastKey=key; try{mount(ab);}catch(e){console.error('propMSW',e);} } }, 800);
 })();
 </script>
 
@@ -12460,7 +12460,7 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
     return 'Filtrado · '+selU.length+' unidades'; }
   var lastSeen=null;
   setInterval(function(){ try{ if(window.__filtering) return;
-    if(window.__AB && window.__AB!==lastSeen){ lastSeen=window.__AB; if(!window.__curSel) window.__AB_FULL=window.__AB; } }catch(e){} },350);
+    if(window.__AB && window.__AB!==lastSeen){ lastSeen=window.__AB; if(!window.__curSel){ window.__AB_FULL=window.__AB; window.__fullSeq=(window.__fullSeq||0)+1; } } }catch(e){} },350);
   function hookLoad(){ if(window.__loadHooked || !window.loadData) return; window.__loadHooked=true;
     var _ld=window.loadData;
     window.loadData=function(){ window.__curSel=''; window.__AB_FULL=null; lastSeen=null; window.__filtLabel=''; return _ld.apply(this, arguments); }; }
