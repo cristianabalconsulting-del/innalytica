@@ -1,11 +1,12 @@
 // Genera un JSON por cliente en public/data/.
 // Secrets: AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, PBI_WORKSPACE_ID, PBI_DATASET_ID
-// Opcional: TICKETMASTER_KEY (eventos web por ciudad).
+// Opcional: TICKETMASTER_KEY, CALENDARIFIC_KEY (eventos + festividades web por ciudad/pais).
 const fs = require('fs');
 const path = require('path');
 const lib = require('../netlify/functions/pbi-data.js');
 const { compute } = lib;
-const tm = require('./events-tm.js');   // eventos web (Ticketmaster) por ciudad
+const tm  = require('./events-tm.js');   // eventos (Ticketmaster)
+const hol = require('./holidays.js');    // festividades (Nager + Calendarific)
 
 const FULL = ['AB','A3R','C&B','CAR','CF','CH','CLA','CLM','CYF','CYF2','EDE','ER','FE','GO','HG','HH','HO','HOM','KN','LCH','LH','MAR','MT','OSH','REN','SBS','SCO','SG','ST','URB','VIC','CAT','CAT CORDOBA','CAT PORTO','CAT SAN SEBASTIAN','CEL','CINC','MIN','MIN-2','SAS','SHM','VVB','ICN-ABAL-1668','ICN-ABAL-1740','ICN-ABAL-1799','ICN-ABAL-1835','ICN-ABAL-1847','ICN-ABAL-2377','ICN-ABAL-2628','ICN-ABAL-2667','ICN-ABAL-2936'];
 const HEAVY = ['MIN','CYF2','CLA','ICN-ABAL-1668','ICN-ABAL-1740','ICN-ABAL-1799','ICN-ABAL-1835','ICN-ABAL-1847','ICN-ABAL-2377','ICN-ABAL-2628','ICN-ABAL-2667','ICN-ABAL-2936'];
@@ -41,13 +42,20 @@ async function tryOne(c) {
     const data = await compute(YEAR, c, 0);
     if (data && data.__complete) {
       try {
-        if (process.env.TICKETMASTER_KEY && c !== '__ALL__') {
+        if (c !== '__ALL__') {
+          const geo = data.geo || [];
           const cities = []; const seenC = {};
-          (data.salesDim || []).concat(data.salesDimLY || []).forEach(function (r) {
-            const l = r && r.loc; if (l && l !== '?' && !seenC[l]) { seenC[l] = 1; cities.push(l); }
-          });
-          const webEv = await tm.eventsForCities(cities, 12);
-          if (webEv && webEv.length) data.eventos = webEv;
+          geo.forEach(function (g) { const l = g && g.city; if (l && !seenC[l]) { seenC[l] = 1; cities.push(l); } });
+          if (!cities.length) (data.salesDim || []).forEach(function (r) { const l = r && r.loc; if (l && l !== '?' && !seenC[l]) { seenC[l] = 1; cities.push(l); } });
+          let extra = [];
+          if (process.env.TICKETMASTER_KEY) { try { extra = extra.concat(await tm.eventsForCities(cities, 12) || []); } catch (e) {} }
+          try { extra = extra.concat(await hol.holidaysForGeo(geo) || []); } catch (e) {}
+          if (extra.length) {
+            const seen2 = {}; const merged = [];
+            extra.forEach(function (e) { const k = e.d + '|' + e.name; if (e.d && e.name && !seen2[k]) { seen2[k] = 1; merged.push(e); } });
+            merged.sort(function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : 0; });
+            data.eventos = merged;
+          }
         }
       } catch (e) { console.log('  (eventos web omitidos para ' + c + ':', e && e.message, ')'); }
       data.__generatedAt = new Date().toISOString();
