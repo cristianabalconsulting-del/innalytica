@@ -3002,10 +3002,10 @@ body { -webkit-font-smoothing: antialiased; }
     <!-- TAB: CANCELLATIONS ONLY -->
     <div id="pickup-tab-cancelonly" style="display:none">
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px">
-        <div class="kpi"><div class="kpi-label">Cancelaciones 7d</div><div class="kpi-val">4</div><div class="kpi-delta" style="color:rgba(224,107,107,0.75)">vs 3 semana pasada</div></div>
-        <div class="kpi"><div class="kpi-label">Nights canceladas</div><div class="kpi-val">22</div><div class="kpi-delta" style="color:rgba(224,107,107,0.75)">−3.840€ revenue</div></div>
-        <div class="kpi"><div class="kpi-label">Tasa cancelación</div><div class="kpi-val">7,6%</div><div class="kpi-delta" style="color:rgba(224,107,107,0.75)">vs 6,4% LY</div></div>
-        <div class="kpi"><div class="kpi-label">Revenue en riesgo</div><div class="kpi-val">9.840€</div><div class="kpi-delta" style="color:var(--t5)">próximas 4 semanas</div></div>
+        <div class="kpi"><div class="kpi-label">Cancelaciones YTD</div><div class="kpi-val" id="pc-k-cbk">4</div><div class="kpi-delta" style="color:rgba(224,107,107,0.75)">reservas canceladas</div></div>
+        <div class="kpi"><div class="kpi-label">Noches canceladas</div><div class="kpi-val" id="pc-k-crn">22</div><div class="kpi-delta" style="color:rgba(224,107,107,0.75)">en el año</div></div>
+        <div class="kpi"><div class="kpi-label">Tasa cancelación</div><div class="kpi-val" id="pc-k-rate">7,6%</div><div class="kpi-delta" style="color:rgba(224,107,107,0.75)" id="pc-k-rateD">vs LY</div></div>
+        <div class="kpi"><div class="kpi-label">Revenue perdido</div><div class="kpi-val" id="pc-k-risk">9.840€</div><div class="kpi-delta" style="color:var(--t5)">por cancelaciones</div></div>
       </div>
       <!-- Evolución cancelaciones vs LY -->
       <div class="card" style="margin-bottom:14px">
@@ -3022,24 +3022,11 @@ body { -webkit-font-smoothing: antialiased; }
       <div class="cards-row r2eq">
         <div class="card">
           <div class="card-title">Cancelaciones por canal <span class="card-tag">2026 vs 2025</span></div>
-          <div style="margin-top:10px">
-            <div class="ch-share-item"><div class="ch-share-head"><span>Booking.com</span><span>18 · 64%</span></div><div class="ch-share-track" style="height:7px"><div class="ch-share-fill" style="width:64%;background:rgba(47,140,255,0.5)"></div></div></div>
-            <div style="height:8px"></div>
-            <div class="ch-share-item"><div class="ch-share-head"><span>Airbnb</span><span>8 · 29%</span></div><div class="ch-share-track" style="height:7px"><div class="ch-share-fill" style="width:29%;background:rgba(47,140,255,0.35)"></div></div></div>
-            <div style="height:8px"></div>
-            <div class="ch-share-item"><div class="ch-share-head"><span>Homeaway</span><span>2 · 7%</span></div><div class="ch-share-track" style="height:7px"><div class="ch-share-fill" style="width:7%;background:rgba(47,140,255,0.2)"></div></div></div>
-          </div>
+          <div id="pc-cch" style="margin-top:10px"></div>
         </div>
         <div class="card">
           <div class="card-title">Cancelaciones por mes de estancia</div>
-          <table class="tbl" style="margin-top:4px">
-            <tr><th>Mes</th><th>Cancel.</th><th>Noches</th><th>Rev. Perdida</th></tr>
-            <tr><td>Junio</td><td>8</td><td>42</td><td style="color:rgba(201,168,76,0.85)">7.644€</td></tr>
-            <tr><td>Julio</td><td>12</td><td>64</td><td style="color:rgba(201,168,76,0.85)">10.944€</td></tr>
-            <tr><td>Agosto</td><td>5</td><td>28</td><td style="color:rgba(201,168,76,0.85)">7.168€</td></tr>
-            <tr><td>Septiembre</td><td>3</td><td>18</td><td style="color:rgba(201,168,76,0.85)">2.664€</td></tr>
-            <tr class="ttotal"><td>Total YTD</td><td>28</td><td>124</td><td style="color:rgba(201,168,76,0.85)">17.082€</td></tr>
-          </table>
+          <table class="tbl" id="pc-cmonth" style="margin-top:4px"><tr><th>Mes</th><th>Cancel.</th><th>Noches</th><th>Rev. Perdida</th></tr><tr><td>—</td><td>—</td><td>—</td><td>—</td></tr></table>
         </div>
       </div>
     </div>
@@ -4625,6 +4612,46 @@ function renderBookerSection(y,m,d,ev){
   document.getElementById('b-pred-sources').textContent=pred+'\n\nFuentes: Histórico PowerBI ABAL 2024-2026 · Asistencia: fuentes oficiales · Canales: Booking Analytics + Airbnb Insights';
   switchBTab(activeBTab);
 }
+
+</script>
+
+<script id="pickup-cancel-fix">
+(function(){
+  var last=null;
+  var MESS=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  var MESF=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  function fN(n,d){d=d||0;if(n==null||isNaN(+n))return'0';return (+(+n).toFixed(d)).toLocaleString('es-ES',{minimumFractionDigits:d,maximumFractionDigits:d});}
+  function setT(id,t){var e=document.getElementById(id);if(e)e.textContent=t;}
+  function build(){
+    var ab=window.__AB; if(!ab) return;
+    var sc=ab.salesCanc||[], scl=ab.salesCancLY||[], cch=ab.cancCh||[];
+    var tbk=0,trn=0,trev=0; sc.forEach(function(r){tbk+=(r.cbk||0);trn+=(r.crn||0);trev+=(r.crev||0);});
+    var rate=(ab.ytd26&&ab.ytd26.cancRate!=null)?ab.ytd26.cancRate:((ab.ytd26&&ab.ytd26.bk)?+(tbk/((ab.ytd26.bk||0)+tbk)*100).toFixed(2):0);
+    var rateL=(ab.ytd25&&ab.ytd25.cancRate!=null)?ab.ytd25.cancRate:0;
+    setT('pc-k-cbk',fN(tbk)); setT('pc-k-crn',fN(trn));
+    setT('pc-k-rate',fN(rate,1)+'%'); setT('pc-k-rateD','vs '+fN(rateL,1)+'% LY'); setT('pc-k-risk',fN(trev)+'€');
+    var cont=document.getElementById('pc-cch');
+    if(cont){ var tot=cch.reduce(function(s,x){return s+(x.c||0);},0)||1; var ord=cch.slice().sort(function(a,b){return b.c-a.c;});
+      var COL=['rgba(47,140,255,0.5)','rgba(47,140,255,0.35)','rgba(47,140,255,0.2)','rgba(47,140,255,0.15)','rgba(47,140,255,0.1)'];
+      cont.innerHTML=ord.map(function(x,i){var pc=Math.round((x.c||0)/tot*100);return '<div class="ch-share-item"><div class="ch-share-head"><span>'+x.nm+'</span><span>'+fN(x.c)+' · '+pc+'%</span></div><div class="ch-share-track" style="height:7px"><div class="ch-share-fill" style="width:'+pc+'%;background:'+COL[i%COL.length]+'"></div></div></div>';}).join('<div style="height:8px"></div>')||'<div style="color:var(--t5);font-size:12px">Sin cancelaciones</div>';
+    }
+    var tb=document.getElementById('pc-cmonth');
+    if(tb){ var bm={}; sc.forEach(function(r){var k=r.mo;if(!bm[k])bm[k]={bk:0,rn:0,rev:0};bm[k].bk+=(r.cbk||0);bm[k].rn+=(r.crn||0);bm[k].rev+=(r.crev||0);});
+      var rows=Object.keys(bm).map(Number).sort(function(a,b){return a-b;});
+      var h='<tr><th>Mes</th><th>Cancel.</th><th>Noches</th><th>Rev. Perdida</th></tr>';
+      rows.forEach(function(m){h+='<tr><td>'+(MESF[m]||m)+'</td><td>'+fN(bm[m].bk)+'</td><td>'+fN(bm[m].rn)+'</td><td style="color:rgba(201,168,76,0.85)">'+fN(bm[m].rev)+'€</td></tr>';});
+      h+='<tr class="ttotal"><td>Total YTD</td><td>'+fN(tbk)+'</td><td>'+fN(trn)+'</td><td style="color:rgba(201,168,76,0.85)">'+fN(trev)+'€</td></tr>';
+      tb.innerHTML=h;
+    }
+    var cm=Array(12).fill(0), cl=Array(12).fill(0);
+    sc.forEach(function(r){cm[r.mo]+=(r.cbk||0);}); scl.forEach(function(r){cl[r.mo]+=(r.cbk||0);});
+    var el=document.getElementById('c-cancels-evo');
+    if(el && window.Chart){ try{var ex=Chart.getChart(el);if(ex)ex.destroy();}catch(e){}
+      new Chart(el,{type:'bar',data:{labels:MESS,datasets:[{label:'2026',data:cm,backgroundColor:'rgba(224,107,107,0.7)',borderRadius:3},{type:'line',label:'2025',data:cl,borderColor:'rgba(201,168,76,0.8)',borderWidth:2,pointRadius:0,tension:0.4,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#4A5A72',font:{size:10}},grid:{color:'#1A2C44'}},y:{ticks:{color:'#4A5A72',font:{size:10}},grid:{color:'#1A2C44'}}}}});
+    }
+  }
+  setInterval(function(){ var a=window.__AB; if(a&&a!==last&&(a.salesCanc||a.cancCh)){ last=a; try{build();}catch(e){console.error('pu-canc',e);} } },800);
+})();
 
 </script>
 </body></html>"></iframe></div></div>
