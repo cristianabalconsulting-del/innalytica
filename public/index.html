@@ -4645,7 +4645,7 @@ function renderBookerSection(y,m,d,ev){
       new Chart(el,{type:'bar',data:{labels:MESS,datasets:[{label:'2026',data:cm,backgroundColor:'rgba(224,107,107,0.7)',borderRadius:3},{type:'line',label:'2025',data:cl,borderColor:'rgba(201,168,76,0.8)',borderWidth:2,pointRadius:0,tension:0.4,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#4A5A72',font:{size:10}},grid:{color:'#1A2C44'}},y:{ticks:{color:'#4A5A72',font:{size:10}},grid:{color:'#1A2C44'}}}}});
     }
   }
-  setInterval(function(){ var a=window.__AB; if(a&&a!==last&&(a.salesCanc||a.cancCh)){ last=a; try{build();}catch(e){console.error('pu-canc',e);} } },800);
+  var __cdone='';setInterval(function(){ var a=window.__AB; if(!a)return; var key=(window.__aloj||'')+'|'+((a.salesCanc||[]).length)+'|'+((a.cancCh||[]).length); var el=document.getElementById('pc-cch'); if(el && (key!==__cdone || !el.children.length)){ __cdone=key; try{build();}catch(e){console.error('pu-canc',e);} } },900);
 })();
 
 </script>
@@ -4684,7 +4684,7 @@ function renderBookerSection(y,m,d,ev){
       gc.innerHTML=order.map(function(g){var p=pct(g26[g],g25[g]||0);return '<div class="kpi"><div class="kpi-label">'+g+' — Reservas</div><div class="kpi-val">'+fN(g26[g])+'</div><div class="kpi-delta '+p.c+'">'+p.t+'</div></div>';}).join('');
     }
   }
-  setInterval(function(){var a=window.__AB;if(a&&a!==last&&a.dpUnit26){last=a;try{build();}catch(e){console.error('pu-cards',e);}}},800);
+  setInterval(function(){var a=window.__AB;if(!a||!a.dpUnit26||!a.dpUnit26.length)return;var uc=document.getElementById('pu-unit-cards');if(!uc)return;var b=a.dpUnit26.slice().sort(function(x,y){return y.bk-x.bk;})[0];var v=uc.querySelector('.kpi-val');if(!v||v.textContent!==(b&&b.unit)){try{build();}catch(e){console.error('pu-cards',e);}}},700);
 })();
 
 </script>
