@@ -12437,6 +12437,9 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
     if(full.pace26) D.pace26=full.pace26.map(function(p){return Object.assign({}, p, {rn:+(num(p.rn)*shareRN).toFixed(1)});});
     if(full.pace25) D.pace25=full.pace25.map(function(p){return Object.assign({}, p, {rn:+(num(p.rn)*shareRNL).toFixed(1)});});
     if(full.pu) D.pu=full.pu.map(function(p){return Object.assign({}, p, {c:+(num(p.c)*shareRN).toFixed(1), x:+(num(p.x)*shareRN).toFixed(1)});});
+    if(full.pace) D.pace=full.pace.map(function(p){return Object.assign({}, p, {rn:+(num(p.rn)*shareRN).toFixed(1), ly:+(num(p.ly)*shareRNL).toFixed(1), rev:Math.round(num(p.rev)*shareRN), revLY:Math.round(num(p.revLY)*shareRNL), av:+(num(p.av)*(nSel/nAll)).toFixed(1)});});
+    if(full.paceDaily) D.paceDaily=full.paceDaily.map(function(p){return Object.assign({}, p, {rn:+(num(p.rn)*shareRN).toFixed(1), ly:+(num(p.ly)*shareRNL).toFixed(1), rev:Math.round(num(p.rev)*shareRN)});});
+    if(full.paceYearAv){ var _pya={}; Object.keys(full.paceYearAv).forEach(function(y){ _pya[y]=Math.round(num(full.paceYearAv[y])*(nSel/nAll)); }); D.paceYearAv=_pya; }
     // Channel / Markets / Cancelaciones / Quality desde datos granulares filtrados
     if(full.dpChan26) D.dpChan26=chanFromSales(D.salesDim);
     if(full.dpChan25) D.dpChan25=chanFromSales(D.salesDimLY);
@@ -12538,6 +12541,9 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
     try{ window.__propGroups=[]; }catch(e){}
     try{ if(window.renderOverview) window.renderOverview(); }catch(e){}
     ['__rebuildClientTables','__rebuildBooker','__rebuildQuality','__rebuildQualityExtra','__rebuildBW','__rebuildPUunit','__rebuildWeb','__rebuildPL','refreshDDtable','buildChannelStayedMain','buildBookerMap','buildBookerBubbleChart','renderBookerTable'].forEach(function(fn){ try{ if(typeof window[fn]==='function') window[fn](); }catch(e){} });
+    try{ if(window.renderPaceFromAPI && window.__AB) window.renderPaceFromAPI(window.__AB); }catch(e){}
+    try{ if(typeof window.renderPFC==='function') window.renderPFC(); }catch(e){}
+    try{ if(typeof window.renderPerfEvo==='function') window.renderPerfEvo(); }catch(e){}
   };
   window.__applySelLeaves=function(leaves, all){
     if(all){ window.__applyCore({}, {}); return; }
@@ -12674,6 +12680,7 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
     }
   };
 
+  GEN.dd=GEN.sales; GEN.pdd=GEN.pace; GEN.kdd=GEN.pickup; GEN.plg=GEN.pl; GEN.gpl=GEN.pl;
   function setText(el,html){ if(el) el.innerHTML=html; }
   function renderOne(key, D){
     try{
@@ -12693,7 +12700,11 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
       if(tEls[2]) setText(tEls[2],res.hacer);
     }catch(e){ console.error('[insights] '+key, e); }
   }
-  function renderAll(){ var D=window.__AB; if(!D) return; Object.keys(GEN).forEach(function(k){ renderOne(k,D); }); }
+  function renderAll(){ var D=window.__AB; if(!D) return; Object.keys(GEN).forEach(function(k){ renderOne(k,D); });
+    try{ if(window.renderPaceFromAPI) window.renderPaceFromAPI(D); }catch(e){}
+    try{ if(typeof window.renderPFC==='function') window.renderPFC(); }catch(e){}
+    try{ if(typeof window.renderPerfEvo==='function') window.renderPerfEvo(); }catch(e){}
+  }
   window.__renderInsights=renderAll;
   var last=null;
   setInterval(function(){ try{ if(window.__AB && window.__AB!==last){ last=window.__AB; renderAll(); } }catch(e){} }, 500);
