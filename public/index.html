@@ -12721,18 +12721,21 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
   var MESF=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   function n(x){return (typeof x==='number'&&!isNaN(x))?x:0;}
   function aggMonth(arr){ var m={}; (arr||[]).forEach(function(r){ var k=r.m; if(m[k]===undefined)m[k]={rn:0,revT:0,revR:0,disp:0}; m[k].rn+=n(r.rn); m[k].revT+=n(r.revT); m[k].revR+=n(r.revR); m[k].disp+=n(r.disp); }); return m; }
-  function mk(o){ if(!o)return {rn:0,occ:0,adrR:0,adrT:0,revR:0,revT:0}; var d=o.disp||1; var rn=Math.round(o.rn);
+  function mk(o,cap){ if(!o)return {rn:0,occ:0,adrR:0,adrT:0,revR:0,revT:0}; var d=cap||o.disp||1; var rn=Math.round(o.rn);
     return {rn:rn, occ:+(o.rn/d*100).toFixed(1), adrR:rn?Math.round(o.revR/o.rn):0, adrT:rn?Math.round(o.revT/o.rn):0, revR:Math.round(o.revR), revT:Math.round(o.revT)}; }
   function mkpk(p){ if(!p)return {rn:0,adrR:0,adrT:0,revR:0,revT:0}; var rn=Math.round(p.rn),rev=Math.round(p.rev);
     return {rn:rn, adrR:rn?Math.round(rev/rn):0, adrT:rn?Math.round(rev/rn):0, revR:rev, revT:rev}; }
   function build(){
-    var ab=window.__AB; if(!ab||!ab.fcPk||!ab.fcPk.length||!ab.dp26) return false;
-    var cur=aggMonth(ab.dp26), ly=aggMonth(ab.dp25);
+    var ab=window.__AB; if(!ab||!ab.fcPk||!ab.fcPk.length) return false;
+    var ly=aggMonth(ab.dp25);
+    var curM={}; (ab.fcPk||[]).forEach(function(r){ var k=r.mo; if(!curM[k])curM[k]={rn:0,revT:0,revR:0}; var o=r.otb||{rn:0,rev:0}; curM[k].rn+=n(o.rn); curM[k].revT+=n(o.rev); curM[k].revR+=n(o.rev); });
+    var yCY=(ab.year)||new Date().getFullYear(), yLY=yCY-1;
+    var capCY={},capLY={}; (ab.capDim||[]).forEach(function(r){ var mo=r.mo; if(r.y===yCY)capCY[mo]=(capCY[mo]||0)+n(r.cap); else if(r.y===yLY)capLY[mo]=(capLY[mo]||0)+n(r.cap); });
     var pkm={}; (ab.fcPk||[]).forEach(function(r){ var k=r.mo; if(!pkm[k])pkm[k]={'7':{rn:0,rev:0},'15':{rn:0,rev:0},'30':{rn:0,rev:0},'45':{rn:0,rev:0}};
       ['7','15','30','45'].forEach(function(w){ if(r.pk&&r.pk[w]){ pkm[k][w].rn+=n(r.pk[w].rn); pkm[k][w].rev+=n(r.pk[w].rev); } }); });
     var arr=[];
     for(var i=0;i<12;i++){ var pk=pkm[i]||{'7':{rn:0,rev:0},'15':{rn:0,rev:0},'30':{rn:0,rev:0},'45':{rn:0,rev:0}};
-      arr.push({ m:MESF[i], cur:mk(cur[i]), ly:mk(ly[i]), pk:{'7':mkpk(pk['7']),'15':mkpk(pk['15']),'30':mkpk(pk['30']),'45':mkpk(pk['45'])} }); }
+      arr.push({ m:MESF[i], cur:mk(curM[i],capCY[i]), ly:mk(ly[i],capLY[i]), pk:{'7':mkpk(pk['7']),'15':mkpk(pk['15']),'30':mkpk(pk['30']),'45':mkpk(pk['45'])} }); }
     window.PFC_DATA=arr;
     window.PFC_FIRST_FUTURE=new Date().getMonth();
     try{ if(typeof renderPFC==='function') renderPFC(); }catch(e){ console.error('pfc render',e); }
