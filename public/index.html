@@ -12741,8 +12741,8 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
     var wxAcc={}; (ab.meteo||[]).forEach(function(r){ var p=String(r.d||'').split('-'); if(p.length<2)return; var yr=+p[0],mo=+p[1]-1; var k=yr+'|'+mo; if(!wxAcc[k])wxAcc[k]={t:0,c:0,wc:{}}; wxAcc[k].t+=n(r.t); wxAcc[k].c++; var w=r.w||''; if(w){wxAcc[k].wc[w]=(wxAcc[k].wc[w]||0)+1;} });
     function wxOf(k){ var a=wxAcc[k]; if(!a||!a.c)return null; var best='',bc=0; Object.keys(a.wc).forEach(function(w){if(a.wc[w]>bc){bc=a.wc[w];best=w;}}); return {t:Math.round(a.t/a.c), w:best}; }
     // días por yr|mo desde fcOtbDay + clima por día
-    var wxDay={}; (ab.meteo||[]).forEach(function(r){ if(r.d) wxDay[r.d]={t:Math.round(n(r.t)),w:r.w||''}; });
-    var daysYM={}; (ab.fcOtbDay||[]).forEach(function(r){ var p=String(r.d||'').split('-'); if(p.length<3)return; var yr=+p[0],mo=+p[1]-1,dd=+p[2]; var k=yr+'|'+mo; (daysYM[k]=daysYM[k]||[]).push({d:r.d,day:dd,rn:n(r.rn),rev:n(r.rev),wx:wxDay[r.d]||null}); });
+    var wxDay={}; (ab.meteo||[]).forEach(function(r){ if(r.d) wxDay[r.d]={t:Math.round(n(r.t)),w:r.w||''}; }); var pkDay={}; (ab.fcPkDay||[]).forEach(function(r){ if(r.d) pkDay[r.d]=r.pk; });
+    var daysYM={}; (ab.fcOtbDay||[]).forEach(function(r){ var p=String(r.d||'').split('-'); if(p.length<3)return; var yr=+p[0],mo=+p[1]-1,dd=+p[2]; var k=yr+'|'+mo; (daysYM[k]=daysYM[k]||[]).push({d:r.d,day:dd,rn:n(r.rn),rev:n(r.rev),wx:wxDay[r.d]||null,pk:pkDay[r.d]||null}); });
     // orden de meses futuros (desde hoy) presentes en cur
     var keys=Object.keys(cur).map(function(k){var p=k.split('|');return {yr:+p[0],mo:+p[1],k:k};})
       .filter(function(o){ return (o.yr>tY)||(o.yr===tY&&o.mo>=tM); })
@@ -12755,7 +12755,7 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
       var lycap=lyv?unitsN*daysInM(o.yr-1,o.mo):0;
       var p=pk[o.k]||{'7':{rn:0,rev:0},'15':{rn:0,rev:0},'30':{rn:0,rev:0},'45':{rn:0,rev:0}};
       var days=(daysYM[o.k]||[]).slice().sort(function(a,b){return a.day-b.day;}).map(function(d){
-        return { lbl:d.day, rn:d.rn, occ:+(d.rn/Math.max(1,unitsN)*100).toFixed(0), adr:d.rn?Math.round(d.rev/d.rn):0, rev:d.rev, wx:d.wx };
+        return { lbl:d.day, rn:d.rn, occ:+(d.rn/Math.max(1,unitsN)*100).toFixed(0), adr:d.rn?Math.round(d.rev/d.rn):0, rev:d.rev, wx:d.wx, pk:d.pk };
       });
       return { yr:o.yr, mo:o.mo, mLabel: MESF[o.mo]+(o.yr!==yCY?(" '"+String(o.yr).slice(2)):''),
         cur:{rn:Math.round(c.rn), occ:+(c.rn/cap*100).toFixed(1), adr:c.rn?Math.round(c.rev/c.rn):0, rev:Math.round(c.rev)},
@@ -12801,7 +12801,7 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
         '<td class="pfc-g3" style="text-align:right;color:var(--cyan)">'+fAdr+'€</td>'+
         '<td class="pfc-g3" style="text-align:right;font-weight:500">'+fmt(fRev)+'€</td>'+
         '<td class="pfc-g4" style="text-align:right;color:'+(dRev==null?'var(--t5)':(dRev>=0?'var(--cyan)':'rgba(246,196,83,.85)'))+'">'+(dRev==null?'—':((dRev>=0?'+':'')+dRev+'%'))+'</td></tr>';
-      if(expanded[i] && r.days){ r.days.forEach(function(d){ var dpRn=p.rn&&r.cur.rn?Math.round(p.rn*d.rn/r.cur.rn):0; var dfRn=d.rn+dpRn;
+      if(expanded[i] && r.days){ r.days.forEach(function(d){ var dpk=(d.pk&&d.pk[bk])||{rn:0,rev:0}; var dpRn=dpk.rn||0, dpRev=dpk.rev||0; var dpAdr=dpRn?Math.round(dpRev/dpRn):0; var dfRn=d.rn+dpRn, dfRev=d.rev+dpRev, dfAdr=dfRn?Math.round(dfRev/dfRn):0;
         h+='<tr style="background:rgba(255,255,255,.02);font-size:11px">'+
           '<td style="text-align:left;padding-left:24px;color:var(--t4)">'+d.lbl+'</td>'+
           '<td class="pfc-g1" style="text-align:center;color:var(--t4)">'+(d.wx?emo(d.wx.w)+' '+d.wx.t+'°':'—')+'</td><td class="pfc-g1"></td>'+
@@ -12809,8 +12809,12 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
           '<td class="pfc-g1" style="text-align:right;color:var(--t4)">'+fmt(d.rn)+'</td>'+
           '<td class="pfc-g1" style="text-align:right;color:var(--t5)">'+d.adr+'€</td>'+
           '<td class="pfc-g1" style="text-align:right;color:var(--t4)">'+fmt(d.rev)+'€</td>'+
-          '<td class="pfc-g2" style="text-align:right;color:var(--t5)">+'+fmt(dpRn)+'</td><td class="pfc-g2"></td><td class="pfc-g2"></td>'+
-          '<td class="pfc-g3" style="text-align:right;color:var(--t4)">'+fmt(dfRn)+'</td><td class="pfc-g3"></td><td class="pfc-g3"></td><td class="pfc-g4"></td></tr>';
+          '<td class="pfc-g2" style="text-align:right;color:var(--cyan)">'+(dpRn?'+'+fmt(dpRn):'—')+'</td>'+
+          '<td class="pfc-g2" style="text-align:right;color:var(--t5)">'+(dpRn?dpAdr+'€':'')+'</td>'+
+          '<td class="pfc-g2" style="text-align:right;color:var(--t4)">'+(dpRn?fmt(dpRev)+'€':'')+'</td>'+
+          '<td class="pfc-g3" style="text-align:right;color:var(--t4)">'+fmt(dfRn)+'</td>'+
+          '<td class="pfc-g3" style="text-align:right;color:var(--t5)">'+dfAdr+'€</td>'+
+          '<td class="pfc-g3" style="text-align:right;color:var(--t4)">'+fmt(dfRev)+'€</td><td class="pfc-g4"></td></tr>';
       }); }
     });
     tbl.innerHTML=h+'</tbody>';
