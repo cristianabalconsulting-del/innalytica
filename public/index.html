@@ -12400,6 +12400,7 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
     if(full.salesDay)    D.salesDay=(full.salesDay||[]).filter(inSel);
     if(full.paceOTBdim)   D.paceOTBdim=(full.paceOTBdim||[]).filter(inSel);
     if(full.paceOTBdimLY) D.paceOTBdimLY=(full.paceOTBdimLY||[]).filter(inSel);
+    if(full.fcPk)        D.fcPk=(full.fcPk||[]).filter(inSel);
     function propShares(dpUnitArr){
       var tot={}, sel={}, nT={}, nS={}, seenT={}, seenS={};
       (dpUnitArr||[]).forEach(function(r){ if(!r||!r.grp)return; var g=r.grp;
@@ -12476,7 +12477,7 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
     if(list.length===1) return list[0];
     var R=Object.assign({}, list[0]);
     function concat(ff){ var o=[]; list.forEach(function(d){ (d[ff]||[]).forEach(function(r){o.push(r);}); }); return o; }
-    ['dp26','dp25','dpUnit26','dpUnit25','salesDim','salesDimLY','salesCanc','salesCancLY','salesDay','paceOTBdim','paceOTBdimLY','capDim','eventos','geo'].forEach(function(ff){ if(list.some(function(d){return d[ff]&&d[ff].length;})) R[ff]=concat(ff); });
+    ['dp26','dp25','dpUnit26','dpUnit25','salesDim','salesDimLY','salesCanc','salesCancLY','salesDay','paceOTBdim','paceOTBdimLY','capDim','eventos','geo','fcPk'].forEach(function(ff){ if(list.some(function(d){return d[ff]&&d[ff].length;})) R[ff]=concat(ff); });
     R.ytd26=aggDP(R.dp26||[]); R.ytd25=aggDP(R.dp25||[]);
     var curM=(list[0].mesActual&&list[0].mesActual.m!=null)?list[0].mesActual.m:(new Date().getMonth());
     var cM=aggDP((R.dp26||[]).filter(function(r){return r.m===curM;})), cL=aggDP((R.dp25||[]).filter(function(r){return r.m===curM;}));
@@ -12708,6 +12709,38 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
   window.__renderInsights=renderAll;
   var last=null;
   setInterval(function(){ try{ if(window.__AB && window.__AB!==last){ last=window.__AB; renderAll(); } }catch(e){} }, 500);
+})();
+</script>
+<script id="pfc-dynamic">
+/* Pace Forecast dinámico: reconstruye PFC_DATA desde window.__AB (ya filtrado por
+   cliente/unidad/propiedad): cur=OTB (dp26), ly=cierre LY (dp25), pk=pick-up por ventana
+   real (fcPk del backend, lógica del BI). Reacciona al filtro y al toggle 7/15/30/45.
+   Fallback: si aún no hay fcPk (antes de regenerar), deja el PFC_DATA existente. */
+(function(){
+  'use strict';
+  var MESF=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  function n(x){return (typeof x==='number'&&!isNaN(x))?x:0;}
+  function aggMonth(arr){ var m={}; (arr||[]).forEach(function(r){ var k=r.m; if(m[k]===undefined)m[k]={rn:0,revT:0,revR:0,disp:0}; m[k].rn+=n(r.rn); m[k].revT+=n(r.revT); m[k].revR+=n(r.revR); m[k].disp+=n(r.disp); }); return m; }
+  function mk(o){ if(!o)return {rn:0,occ:0,adrR:0,adrT:0,revR:0,revT:0}; var d=o.disp||1; var rn=Math.round(o.rn);
+    return {rn:rn, occ:+(o.rn/d*100).toFixed(1), adrR:rn?Math.round(o.revR/o.rn):0, adrT:rn?Math.round(o.revT/o.rn):0, revR:Math.round(o.revR), revT:Math.round(o.revT)}; }
+  function mkpk(p){ if(!p)return {rn:0,adrR:0,adrT:0,revR:0,revT:0}; var rn=Math.round(p.rn),rev=Math.round(p.rev);
+    return {rn:rn, adrR:rn?Math.round(rev/rn):0, adrT:rn?Math.round(rev/rn):0, revR:rev, revT:rev}; }
+  function build(){
+    var ab=window.__AB; if(!ab||!ab.fcPk||!ab.fcPk.length||!ab.dp26) return false;
+    var cur=aggMonth(ab.dp26), ly=aggMonth(ab.dp25);
+    var pkm={}; (ab.fcPk||[]).forEach(function(r){ var k=r.mo; if(!pkm[k])pkm[k]={'7':{rn:0,rev:0},'15':{rn:0,rev:0},'30':{rn:0,rev:0},'45':{rn:0,rev:0}};
+      ['7','15','30','45'].forEach(function(w){ if(r.pk&&r.pk[w]){ pkm[k][w].rn+=n(r.pk[w].rn); pkm[k][w].rev+=n(r.pk[w].rev); } }); });
+    var arr=[];
+    for(var i=0;i<12;i++){ var pk=pkm[i]||{'7':{rn:0,rev:0},'15':{rn:0,rev:0},'30':{rn:0,rev:0},'45':{rn:0,rev:0}};
+      arr.push({ m:MESF[i], cur:mk(cur[i]), ly:mk(ly[i]), pk:{'7':mkpk(pk['7']),'15':mkpk(pk['15']),'30':mkpk(pk['30']),'45':mkpk(pk['45'])} }); }
+    window.PFC_DATA=arr;
+    window.PFC_FIRST_FUTURE=new Date().getMonth();
+    try{ if(typeof renderPFC==='function') renderPFC(); }catch(e){ console.error('pfc render',e); }
+    return true;
+  }
+  window.__buildPFC=build;
+  var last=null;
+  setInterval(function(){ try{ if(window.__AB && window.__AB!==last && window.__AB.fcPk){ last=window.__AB; build(); } }catch(e){} }, 600);
 })();
 </script>
 </body>
