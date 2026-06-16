@@ -12554,5 +12554,150 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
   window.__gPropMulti=function(groups){ if(groups&&groups.length){ var g={}; groups.forEach(function(x){g[x]=true;}); window.__applyCore({}, g); } else window.__applyCore({}, {}); };
 })();
 </script>
+<script id="dynamic-insights">
+/* Recuadros "Innalytica" dinámicos: regenera titular + 4 cifras + Qué pasa/Por qué/Qué hacer
+   desde window.__AB (ya filtrado por alojamiento/propiedad/unidad). Aditivo y a prueba de fallos:
+   si faltan datos, deja el texto que ya hubiera. */
+(function(){
+  'use strict';
+  function n(x){return (typeof x==='number'&&!isNaN(x))?x:0;}
+  function f(v,d){d=d||0; if(v==null||isNaN(v))return '0'; return new Intl.NumberFormat('es-ES',{minimumFractionDigits:d,maximumFractionDigits:d}).format(+(+v).toFixed(d));}
+  function eur(v){return f(v, Math.abs(v)>=1000?0:1)+'€';}
+  function pc(a,b){if(!b)return '—'; var d=(a-b)/Math.abs(b)*100; return (d>=0?'+':'')+f(d,1)+'%';}
+  function dir(a,b){return a>=b?'up':'down';}
+  function topChan(D){ var t=(D.dpChan26||[]); if(!t.length) return null; var tot=t.reduce(function(s,r){return s+n(r.rev);},0)||1;
+    var top=t.slice().sort(function(a,b){return n(b.rev)-n(a.rev);})[0];
+    var hi=t.slice().filter(function(r){return n(r.rn)>0;}).sort(function(a,b){return (n(b.rev)/n(b.rn))-(n(a.rev)/n(a.rn));})[0];
+    return {name:top.ch, share:+(n(top.rev)/tot*100).toFixed(1), tot:tot, n2:t.length,
+            hiName:hi?hi.ch:top.ch, hiAdr:hi&&n(hi.rn)?Math.round(n(hi.rev)/n(hi.rn)):0}; }
+  function topMkt(D){ var t=(D.booker||[]); if(!t.length) return null; var totRN=t.reduce(function(s,r){return s+n(r.rn);},0)||1;
+    var top=t.slice().sort(function(a,b){return n(b.rn)-n(a.rn);})[0];
+    return {iso:top.iso, share:+(n(top.rn)/totRN*100).toFixed(1), adr:n(top.adr), n:t.length}; }
+  function qExt(D){ var q=D.quality; if(!q||!q.byUnit||!q.byUnit.length) return null;
+    var bu=q.byUnit.slice().filter(function(r){return n(r.reviews)>0;}); if(!bu.length) bu=q.byUnit.slice();
+    bu.sort(function(a,b){return n(b.nota)-n(a.nota);});
+    return {best:bu[0], worst:bu[bu.length-1], overall:n(q.overall), reviews:n(q.reviews)}; }
+  function otb(D){ var a=(D.paceOTBdim||[]), b=(D.paceOTBdimLY||[]);
+    var rn=a.reduce(function(s,r){return s+n(r.rn);},0), ing=a.reduce(function(s,r){return s+n(r.ing);},0);
+    var rnL=b.reduce(function(s,r){return s+n(r.rn);},0), ingL=b.reduce(function(s,r){return s+n(r.ing);},0);
+    return {rn:rn, ing:ing, adr:rn?ing/rn:0, rnL:rnL, ingL:ingL, adrL:rnL?ingL/rnL:0}; }
+
+  var GEN={
+    overview:function(D){ var d=D.ytd26||{}, p=D.ytd25||{}, ch=topChan(D);
+      var adrPc=pc(d.adrT,p.adrT), revPc=pc(d.revT,p.revT), occ=n(d.occ);
+      var dep=ch?ch.share:0, depW=dep>70;
+      var hl='Tu ADR '+(dir(d.adrT,p.adrT)==='up'?'sube':'baja')+' '+adrPc+' y el revenue '+revPc+' vs el año pasado'+(occ&&occ<55?' — <span class="warn">pero la ocupación está en '+f(occ,1)+'%.</span>':'.');
+      return {hl:hl,
+        metrics:[[adrPc,'ADR vs 2025',dir(d.adrT,p.adrT)],[revPc,'Revenue YTD vs 2025',dir(d.revT,p.revT)],[f(occ,1)+'%','Ocupación YTD',occ<55?'warn':'up'],[(ch?f(dep,1)+'%':'—'),(ch?'Dependencia '+ch.name:'Canal'),depW?'warn':'up']],
+        pasa:'Revenue YTD de <strong>'+eur(d.revT)+'</strong> ('+revPc+' vs 2025) con un ADR de <strong>'+eur(d.adrT)+'</strong> (desde '+eur(p.adrT)+'). Has vendido '+f(d.rn)+' noches en '+f((D.units&&D.units.total)||0)+' unidades.',
+        porque:'El movimiento viene '+(Math.abs((d.adrT-p.adrT))> Math.abs((d.rn-p.rn))?'del precio más que del volumen':'del volumen')+'. '+(ch?'Tu canal principal es <strong>'+ch.name+'</strong> con el '+f(dep,1)+'% del revenue':'')+(depW?' — una dependencia alta a vigilar.':'.'),
+        hacer:(occ&&occ<55?'Activa captación en los meses flojos para subir ocupación. ':'')+(depW?'Diversifica canales para reducir el riesgo de depender de '+ch.name+'.':'Mantén el equilibrio de canales y protege el ADR.')};
+    },
+    sales:function(D){ var d=D.ytd26||{}, p=D.ytd25||{};
+      var adrPc=pc(d.adrT,p.adrT), revPc=pc(d.revT,p.revT), niPc=pc(d.rn,p.rn);
+      var hl='Tu ADR '+(dir(d.adrT,p.adrT)==='up'?'sube':'baja')+' '+adrPc+' vs el año pasado'+(dir(d.rn,p.rn)==='down'?', pero el volumen de noches cae. Estás vendiendo '+(d.revT>=p.revT?'a mejor precio':'menos')+'.':'.');
+      return {hl:hl,
+        metrics:[[eur(d.revT),'Revenue YTD',dir(d.revT,p.revT)],[adrPc,'ADR vs 2025',dir(d.adrT,p.adrT)],[f(d.rn),'Noches vendidas',dir(d.rn,p.rn)],[eur(d.adrT),'ADR medio','up']],
+        pasa:'Revenue de <strong>'+eur(d.revT)+'</strong> ('+revPc+' vs 2025), '+f(d.rn)+' noches ('+niPc+') y ADR de <strong>'+eur(d.adrT)+'</strong> ('+adrPc+').',
+        porque:'El ADR '+(dir(d.adrT,p.adrT)==='up'?'sube':'baja')+' mientras el volumen '+(dir(d.rn,p.rn)==='up'?'crece':'cae')+'. '+(d.revT>=p.revT?'El precio compensa el volumen.':'La caída de volumen pesa más que la subida de precio.'),
+        hacer:'Analiza por día de semana y propiedad dónde tienes hueco para subir precio sin perder ocupación.'};
+    },
+    channel:function(D){ var ch=topChan(D); if(!ch) return null; var t=(D.dpChan26||[]);
+      var srt=t.slice().sort(function(a,b){return n(b.rev)-n(a.rev);});
+      var second=srt[1];
+      return {hl:'Dependes de <strong>'+ch.name+'</strong> en un '+f(ch.share,1)+'% del revenue'+(ch.share>70?' — <span class="warn">una concentración alta.</span>':'.'),
+        metrics:[[f(ch.share,1)+'%','Dependencia '+ch.name,ch.share>70?'warn':'up'],[second?eur(second.rev):'—',second?second.ch+' revenue':'2º canal','up'],[f(t.length),'Canales activos','up'],[ch.hiAdr?eur(ch.hiAdr):'—','ADR más alto ('+ch.hiName+')','up']],
+        pasa:'<strong>'+ch.name+'</strong> concentra el '+f(ch.share,1)+'% del revenue. El canal con mejor ADR es <strong>'+ch.hiName+'</strong> ('+eur(ch.hiAdr)+').',
+        porque:'Una dependencia alta de un solo canal aumenta el riesgo si cambian comisiones o condiciones. '+(second?second.ch+' es tu segundo canal.':''),
+        hacer:'Impulsa el canal directo y los canales de mayor ADR para diversificar y proteger margen.'};
+    },
+    booker:function(D){ var m=topMkt(D); if(!m) return null;
+      return {hl:'Tu mercado principal es <strong>'+m.iso+'</strong> con el '+f(m.share,1)+'% de las noches.',
+        metrics:[[f(m.share,1)+'%',m.iso+' · share noches','up'],[eur(m.adr),'ADR medio '+m.iso,'up'],[f(D.ytd26?D.ytd26.los:0,1),'LOS medio','up'],[f(m.n),'Mercados activos','up']],
+        pasa:'<strong>'+m.iso+'</strong> lidera con el '+f(m.share,1)+'% de las noches y un ADR de '+eur(m.adr)+'. Operas con '+f(m.n)+' mercados de origen.',
+        porque:'La concentración por mercado indica de dónde depende tu demanda. La estancia media (LOS) es de '+f(D.ytd26?D.ytd26.los:0,1)+' noches.',
+        hacer:'Refuerza visibilidad en los mercados de mayor ADR y vigila la dependencia del mercado líder.'};
+    },
+    quality:function(D){ var q=qExt(D); if(!q) return null;
+      return {hl:'Tu score global es <strong>'+f(q.overall,2)+'</strong>'+(q.overall<8?' — <span class="warn">por debajo de 8.</span>':'.'),
+        metrics:[[f(q.overall,2),'Score global',q.overall>=8?'up':'warn'],[f(q.reviews),'Reseñas','up'],[q.best?f(q.best.nota,2):'—',q.best?'Mejor: '+q.best.unit:'Mejor unidad','up'],[q.worst?f(q.worst.nota,2):'—',q.worst?'A mejorar: '+q.worst.unit:'A mejorar','warn']],
+        pasa:'Score medio de <strong>'+f(q.overall,2)+'</strong> sobre '+f(q.reviews)+' reseñas. '+(q.best?'Tu mejor unidad es <strong>'+q.best.unit+'</strong> ('+f(q.best.nota,2)+')':'')+'.',
+        porque:'La reputación sostiene el precio: las unidades con mejor score aguantan ADR más alto. '+(q.worst?q.worst.unit+' ('+f(q.worst.nota,2)+') es la que más arrastra la media.':''),
+        hacer:(q.worst?'Prioriza mejorar '+q.worst.unit+' — es la que más baja tu media.':'Mantén el nivel de reseñas para proteger tu posición de precio.')};
+    },
+    pace:function(D){ var o=otb(D), d=D.ytd26||{};
+      if(!o.rn) return null;
+      var rnPc=pc(o.rn,o.rnL), adrPc=pc(o.adr,o.adrL);
+      return {hl:'Llevas <strong>'+f(o.rn)+'</strong> noches On The Books ('+rnPc+' vs el mismo punto de 2025).',
+        metrics:[[rnPc,'Noches OTB vs 2025',dir(o.rn,o.rnL)],[adrPc,'ADR OTB vs 2025',dir(o.adr,o.adrL)],[eur(o.ing),'Revenue OTB','up'],[f(n(d.occ),1)+'%','Ocupación YTD',n(d.occ)<55?'warn':'up']],
+        pasa:'On The Books: <strong>'+f(o.rn)+'</strong> noches y <strong>'+eur(o.ing)+'</strong> de revenue, con ADR de '+eur(o.adr)+' ('+adrPc+' vs 2025).',
+        porque:'El ritmo de captación va '+(dir(o.rn,o.rnL)==='up'?'por delante':'por detrás')+' del año pasado ('+rnPc+' en noches).',
+        hacer:(dir(o.rn,o.rnL)==='down'?'Activa captación en los meses con déficit antes de que la ventana se cierre.':'Mantén el ritmo y protege el ADR de las reservas anticipadas.')};
+    },
+    pickup:function(D){ var pu=(D.pu||[]); if(!pu.length) return null; var d=D.ytd26||{};
+      var last=pu[pu.length-1]||{}; var l7=pu.slice(-7);
+      var c7=l7.reduce(function(s,r){return s+n(r.c);},0), x7=l7.reduce(function(s,r){return s+n(r.x);},0);
+      return {hl:'Has captado <strong>'+f(c7)+'</strong> reservas en los últimos 7 días'+(x7?', con '+f(x7)+' cancelaciones.':'.'),
+        metrics:[[f(n(last.c)),'Reservas últimas 24h','up'],[f(c7),'Pick-up 7 días','up'],[f(x7),'Cancelaciones 7d',(x7>c7*0.3?'warn':'up')],[eur(d.adrT),'ADR medio','up']],
+        pasa:'En los últimos 7 días entraron <strong>'+f(c7)+'</strong> reservas nuevas'+(x7?' y se cancelaron '+f(x7):'')+'. El ADR medio es '+eur(d.adrT)+'.',
+        porque:'El ritmo de captación marca cómo se llena el calendario. '+((x7&&x7>c7*0.3)?'La tasa de cancelación reciente es alta.':'Las cancelaciones están bajo control.'),
+        hacer:'Vigila los días sin captación y ajusta precio o visibilidad en las fechas futuras más flojas.'};
+    },
+    pid:function(D){ var d=D.ytd26||{}, dp=(D.dp26||[]);
+      var byM={}; dp.forEach(function(r){ byM[r.m]=byM[r.m]||{rev:0,rn:0}; byM[r.m].rev+=n(r.revT); byM[r.m].rn+=n(r.rn); });
+      var adrs=Object.keys(byM).map(function(k){var x=byM[k]; return x.rn?x.rev/x.rn:0;}).filter(function(v){return v>0;});
+      if(!adrs.length) return null;
+      var mx=Math.max.apply(null,adrs), mn=Math.min.apply(null,adrs);
+      return {hl:'Tu ADR se mueve entre <strong>'+eur(mn)+'</strong> y <strong>'+eur(mx)+'</strong> según la temporada.',
+        metrics:[[eur(d.adrT),'ADR cierre medio','up'],[eur(mx),'ADR máximo','up'],[eur(mn),'ADR mínimo','up'],[f(d.bk),'Reservas','up']],
+        pasa:'El ADR de cierre medio es <strong>'+eur(d.adrT)+'</strong>, con máximo de '+eur(mx)+' y mínimo de '+eur(mn)+' a lo largo del año.',
+        porque:'La amplitud entre ADR mínimo y máximo refleja tu poder de precio según la estacionalidad de la demanda.',
+        hacer:'Aprovecha los meses de ADR alto para maximizar ingresos y revisa los de ADR bajo por si hay margen para subir.'};
+    },
+    pl:function(D){ var pl=D.pl; if(!pl||!pl.revenue) return null;
+      var margin=pl.revenue?+(pl.gop/pl.revenue*100).toFixed(1):0;
+      var gos=pl.revenue?+((n(pl.commission)+n(pl.totalCost))/pl.revenue*100).toFixed(1):0;
+      return {hl:'Tu margen GOP es del <strong>'+f(margin,1)+'%</strong> sobre '+eur(pl.revenue)+' de ingresos.',
+        metrics:[[eur(pl.revenue),'Revenue total','up'],[f(margin,1)+'%','Margen GOP',(margin>=70?'up':'warn')],[eur(pl.gop),'GOP','up'],[f(gos,1)+'%','Gastos sobre ventas','up']],
+        pasa:'Ingresos de <strong>'+eur(pl.revenue)+'</strong>, comisiones de '+eur(pl.commission)+(pl.totalCost?' y costes de '+eur(pl.totalCost):'')+'. GOP de <strong>'+eur(pl.gop)+'</strong> ('+f(margin,1)+'% de margen).',
+        porque:'El GOP es lo que retienes tras comisiones y costes. Las comisiones pesan un '+(pl.revenue?f(n(pl.commission)/pl.revenue*100,1):'0')+'% sobre ventas.',
+        hacer:'Reduce dependencia de canales con comisión alta e impulsa el directo para mejorar el margen.'};
+    },
+    web:function(D){ var w=D.web; if(!w||!(w.users>0)) return null;
+      var conv=w.users?+(n(w.reservas)/w.users*100).toFixed(2):0;
+      var mob=(function(){ var t=(w.devices||[]).reduce(function(s,r){return s+n(r.u);},0)||1; var m=(w.devices||[]).filter(function(r){return /mob|móv|phone|smart/i.test(r.name);}).reduce(function(s,r){return s+n(r.u);},0); return Math.round(m/t*100); })();
+      return {hl:'Tu web convierte al <strong>'+f(conv,2)+'%</strong> con '+f(w.users)+' visitas.',
+        metrics:[[f(w.users),'Visitas','up'],[f(w.reservas),'Reservas directas','up'],[f(conv,2)+'%','Conversión',(conv>=3?'up':'warn')],[mob?f(mob)+'%':'—','Tráfico móvil','up']],
+        pasa:'<strong>'+f(w.users)+'</strong> visitas generaron <strong>'+f(w.reservas)+'</strong> reservas directas: conversión del '+f(conv,2)+'%.',
+        porque:'El canal directo es el de mayor margen (sin comisión OTA). '+(mob?'El '+f(mob)+'% del tráfico es móvil.':''),
+        hacer:'Optimiza el embudo'+(conv<3?' — hay margen para subir la conversión hacia el 3,5%':'')+' y potencia el canal directo.'};
+    }
+  };
+
+  function setText(el,html){ if(el) el.innerHTML=html; }
+  function renderOne(key, D){
+    try{
+      var gen=GEN[key]; if(!gen) return;
+      var res=gen(D); if(!res) return;
+      var n2=document.getElementById('ai-n2-'+key); if(!n2) return;
+      var panel=n2.closest? n2.closest('.ai-panel') : n2.parentNode;
+      var hlEl=panel?panel.querySelector('.ai-headline'):null; setText(hlEl,res.hl);
+      var mEls=n2.querySelectorAll('.ai-metric');
+      (res.metrics||[]).forEach(function(m,i){ var me=mEls[i]; if(!me)return;
+        var v=me.querySelector('.ai-metric-val'), l=me.querySelector('.ai-metric-lbl');
+        if(v){ v.textContent=m[0]; v.className='ai-metric-val '+(m[2]||''); }
+        if(l) l.textContent=m[1]; });
+      var tEls=n2.querySelectorAll('.ai-3a .ai-text');
+      if(tEls[0]) setText(tEls[0],res.pasa);
+      if(tEls[1]) setText(tEls[1],res.porque);
+      if(tEls[2]) setText(tEls[2],res.hacer);
+    }catch(e){ console.error('[insights] '+key, e); }
+  }
+  function renderAll(){ var D=window.__AB; if(!D) return; Object.keys(GEN).forEach(function(k){ renderOne(k,D); }); }
+  window.__renderInsights=renderAll;
+  var last=null;
+  setInterval(function(){ try{ if(window.__AB && window.__AB!==last){ last=window.__AB; renderAll(); } }catch(e){} }, 500);
+})();
+</script>
 </body>
 </html>
