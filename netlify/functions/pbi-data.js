@@ -16,6 +16,9 @@ const QUERY_TIMEOUT = parseInt(process.env.QUERY_TIMEOUT_MS) || 12000;  // confi
 const POOL_SIZE     = parseInt(process.env.POOL_SIZE) || 14;  // configurable (generación usa pool bajo)
 const BUDGET_MS     = parseInt(process.env.PBI_BUDGET_MS) || 7500;  // cabe en el límite de 10s de Free
 const ESSENTIAL     = {kpi:1,ytdToday:1,mesActual:1,dp26:1,dp25:1,capDim:1,unitsCount:1,dpChan26:1,dpChan25:1,pace26:1,pace25:1,paceLead:1}; // se piden primero
+// Consultas OPCIONALES: si fallan (p.ej. 'Meteo VCR' no publicada en el dataset, o detalle pesado),
+// NO bloquean el guardado del JSON. Así el clima/forecast pueden faltar sin tumbar todo el fichero.
+const OPTIONAL      = {meteoFc:1, fcOtbD:1, forecastPk:1};
 let   TOKEN_CACHE   = { token: null, exp: 0 };
 let   TOKEN_PROMISE = null;     // dedup de peticiones de token concurrentes
 const RESP_CACHE    = new Map(); // key `${aloj}|${year}` -> { exp, promise }
@@ -178,20 +181,21 @@ async function runQueries(token, queries, deadline) {
     }
   }
   let dropped = 0;
+  const failed = [];           // claves que fallaron (deadline o error)
   const _origWorker = worker;
   // re-define worker para contar descartes (deadline) y errores
   async function worker2() {
     while (idx < entries.length) {
       const e = entries[idx++];
-      if (deadline && Date.now() >= deadline) { out[e.key] = []; dropped++; continue; }
+      if (deadline && Date.now() >= deadline) { out[e.key] = []; dropped++; failed.push(e.key); continue; }
       try { out[e.key] = await daxQuery(token, e.q, 0, deadline); }
-      catch (err) { console.error('[query KO]', e.key, err.message); out[e.key] = []; dropped++; }
+      catch (err) { console.error('[query KO]', e.key, err.message); out[e.key] = []; dropped++; failed.push(e.key); }
     }
   }
   const workers = [];
   for (let i = 0; i < Math.min(POOL_SIZE, entries.length); i++) workers.push(worker2());
   await Promise.all(workers);
-  return { out: out, dropped: dropped };
+  return { out: out, dropped: dropped, failed: failed };
 }
 
 // ── Queries DAX exactas (mismo modelo verificado) ────────────────────
@@ -305,12 +309,12 @@ ytdToday: `EVALUATE ROW("Rev",CALCULATE(SUM('Informe Reservas Total'[ADR ING])+S
       "RN",COUNTROWS('Informe Reservas Total')
     ) ORDER BY 'Informe Reservas Total'[Fecha Estancia]`,
 
-    forecastPk: `EVALUATE CALCULATETABLE(ADDCOLUMNS(CROSSJOIN(SUMMARIZE(FILTER(Habitaciones,Habitaciones[Activo_Condicional]="Activo"),Habitaciones[Property],Habitaciones[Tipo Habitación]),SUMMARIZE(FILTER('Fechas estancia','Fechas estancia'[Date]>=${todayDAX}&&'Fechas estancia'[Date]<=${todayDAX}+550),'Fechas estancia'[Year],'Fechas estancia'[Month])),"OTBR",[NOC AY BW +360],"OTBV",[ING AY BW +360],"P7R",[NOC LY BW +07],"P15R",[NOC LY BW +15],"P30R",[NOC LY BW +30],"P45R",[NOC LY BW +45],"P7V",[ING LY BW +07],"P15V",[ING LY BW +15],"P30V",[ING LY BW +30],"P45V",[ING LY BW +45]),Habitaciones[Alojamiento] IN ${alojIN},'Fecha Venta'[Date]=${todayDAX})`,
+    forecastPk: `EVALUATE CALCULATETABLE(ADDCOLUMNS(CROSSJOIN(SUMMARIZE(FILTER(Habitaciones,Habitaciones[Activo_Condicional]="Activo"),Habitaciones[Property],Habitaciones[Tipo Habitación]),SUMMARIZE(FILTER('Fechas estancia','Fechas estancia'[Date]>=${todayDAX}&&'Fechas estancia'[Date]<=${todayDAX}+940),'Fechas estancia'[Year],'Fechas estancia'[Month])),"OTBR",[NOC AY BW +360],"OTBV",[ING AY BW +360],"P7R",[NOC LY BW +07],"P15R",[NOC LY BW +15],"P30R",[NOC LY BW +30],"P45R",[NOC LY BW +45],"P7V",[ING LY BW +07],"P15V",[ING LY BW +15],"P30V",[ING LY BW +30],"P45V",[ING LY BW +45]),Habitaciones[Alojamiento] IN ${alojIN},'Fecha Venta'[Date]=${todayDAX})`,
 
     // Clima (Meteo VCR) por fecha para la provincia del cliente — actual y rango LY
     // OTB por día y unidad (confirmado+OK) — para forecast multi-año + desglose por día
-    fcOtbD: `EVALUATE SUMMARIZECOLUMNS('Informe Reservas Total'[Fecha Estancia],Habitaciones[Property],Habitaciones[Tipo Habitación],FILTER(Habitaciones,Habitaciones[Activo_Condicional]="Activo"),FILTER('Informe Reservas Total','Informe Reservas Total'[Alojamiento] IN ${alojIN}&&'Informe Reservas Total'[Status]="CONFIRMED"&&'Informe Reservas Total'[Conexion]="OK"&&'Informe Reservas Total'[Fecha Estancia]>=${todayDAX}&&'Informe Reservas Total'[Fecha Estancia]<=${todayDAX}+420),"RN",COUNTROWS('Informe Reservas Total'),"Rev",SUM('Informe Reservas Total'[ADR ING])+SUM('Informe Reservas Total'[Cleaning Diario])+SUM('Informe Reservas Total'[Extras Diario]))`,
-    meteoFc: `EVALUATE CALCULATETABLE(SUMMARIZECOLUMNS('Meteo VCR'[date],"T",AVERAGE('Meteo VCR'[temp]),"W",MAXX(VALUES('Meteo VCR'[weather]),'Meteo VCR'[weather])),Habitaciones[Alojamiento] IN ${alojIN},'Meteo VCR'[date]>=${todayDAX}-380&&'Meteo VCR'[date]<=${todayDAX}+560)`,
+    fcOtbD: `EVALUATE SUMMARIZECOLUMNS('Informe Reservas Total'[Fecha Estancia],Habitaciones[Property],Habitaciones[Tipo Habitación],FILTER(Habitaciones,Habitaciones[Activo_Condicional]="Activo"),FILTER('Informe Reservas Total','Informe Reservas Total'[Alojamiento] IN ${alojIN}&&'Informe Reservas Total'[Status]="CONFIRMED"&&'Informe Reservas Total'[Conexion]="OK"&&'Informe Reservas Total'[Fecha Estancia]>=${todayDAX}&&'Informe Reservas Total'[Fecha Estancia]<=${todayDAX}+940),"RN",COUNTROWS('Informe Reservas Total'),"Rev",SUM('Informe Reservas Total'[ADR ING])+SUM('Informe Reservas Total'[Cleaning Diario])+SUM('Informe Reservas Total'[Extras Diario]))`,
+    meteoFc: `EVALUATE CALCULATETABLE(SUMMARIZECOLUMNS('Meteo VCR'[date],"T",AVERAGE('Meteo VCR'[temp]),"W",MAXX(VALUES('Meteo VCR'[weather]),'Meteo VCR'[weather])),Habitaciones[Alojamiento] IN ${alojIN},'Meteo VCR'[date]>=${todayDAX}-380&&'Meteo VCR'[date]<=${todayDAX}+940)`,
 
     // Pick Up últimas 2 semanas
     pickup: `EVALUATE SUMMARIZECOLUMNS(
@@ -905,9 +909,13 @@ async function compute(year, aloj, budgetMs) {
   const token   = await getToken();
   const queries = buildQueries(year, aloj);
   const deadline = budgetMs ? Date.now() + budgetMs : 0;        // 0 = sin límite (background)
-  const { out, dropped } = await runQueries(token, queries, deadline);
+  const { out, dropped, failed } = await runQueries(token, queries, deadline);
   const data = processData(out, year);
-  data.__complete = (dropped === 0);                            // true solo si NO faltó ninguna consulta
+  // __complete: ignora las consultas OPCIONALES (clima/forecast). Una de ellas fallando
+  // (p.ej. 'Meteo VCR' no publicada) NO debe impedir guardar el JSON con todo lo demás.
+  const blockers = (failed || []).filter(function(k){ return !OPTIONAL[k]; });
+  data.__complete = (blockers.length === 0);
+  if (failed && failed.length) console.warn('[compute] consultas fallidas:', failed.join(', '), '| bloquean:', blockers.join(',')||'(ninguna)');
   data.__refreshAt = 0;
   return data;
 }
