@@ -18,7 +18,7 @@ const BUDGET_MS     = parseInt(process.env.PBI_BUDGET_MS) || 7500;  // cabe en e
 const ESSENTIAL     = {kpi:1,ytdToday:1,mesActual:1,dp26:1,dp25:1,capDim:1,unitsCount:1,dpChan26:1,dpChan25:1,pace26:1,pace25:1,paceLead:1}; // se piden primero
 // Consultas OPCIONALES: si fallan (p.ej. 'Meteo VCR' no publicada en el dataset, o detalle pesado),
 // NO bloquean el guardado del JSON. Así el clima/forecast pueden faltar sin tumbar todo el fichero.
-const OPTIONAL      = {meteoFc:1, fcOtbD:1, forecastPk:1};
+const OPTIONAL      = {meteoFc:1, fcOtbD:1, forecastPk:1, fcPkDay:1};
 let   TOKEN_CACHE   = { token: null, exp: 0 };
 let   TOKEN_PROMISE = null;     // dedup de peticiones de token concurrentes
 const RESP_CACHE    = new Map(); // key `${aloj}|${year}` -> { exp, promise }
@@ -315,6 +315,8 @@ ytdToday: `EVALUATE ROW("Rev",CALCULATE(SUM('Informe Reservas Total'[ADR ING])+S
     // OTB por día y unidad (confirmado+OK) — para forecast multi-año + desglose por día
     fcOtbD: `EVALUATE SUMMARIZECOLUMNS('Informe Reservas Total'[Fecha Estancia],Habitaciones[Property],Habitaciones[Tipo Habitación],FILTER(Habitaciones,Habitaciones[Activo_Condicional]="Activo"),FILTER('Informe Reservas Total','Informe Reservas Total'[Alojamiento] IN ${alojIN}&&'Informe Reservas Total'[Status]="CONFIRMED"&&'Informe Reservas Total'[Conexion]="OK"&&'Informe Reservas Total'[Fecha Estancia]>=${todayDAX}&&'Informe Reservas Total'[Fecha Estancia]<=${todayDAX}+940),"RN",COUNTROWS('Informe Reservas Total'),"Rev",SUM('Informe Reservas Total'[ADR ING])+SUM('Informe Reservas Total'[Cleaning Diario])+SUM('Informe Reservas Total'[Extras Diario]))`,
     meteoFc: `EVALUATE CALCULATETABLE(SUMMARIZECOLUMNS('Meteo VCR'[date],"T",AVERAGE('Meteo VCR'[temp]),"W",MAXX(VALUES('Meteo VCR'[weather]),'Meteo VCR'[weather])),Habitaciones[Alojamiento] IN ${alojIN},'Meteo VCR'[date]>=${todayDAX}-380&&'Meteo VCR'[date]<=${todayDAX}+940)`,
+    // Pick-up POR DÍA (nivel cliente) — para rellenar el desglose diario igual que el BI (PickUp + Forecast por día)
+    fcPkDay: `EVALUATE CALCULATETABLE(ADDCOLUMNS(SUMMARIZE(FILTER('Fechas estancia','Fechas estancia'[Date]>=${todayDAX}&&'Fechas estancia'[Date]<=${todayDAX}+940),'Fechas estancia'[Date]),"P7R",[NOC LY BW +07],"P15R",[NOC LY BW +15],"P30R",[NOC LY BW +30],"P45R",[NOC LY BW +45],"P7V",[ING LY BW +07],"P15V",[ING LY BW +15],"P30V",[ING LY BW +30],"P45V",[ING LY BW +45]),FILTER(Habitaciones,Habitaciones[Activo_Condicional]="Activo"),Habitaciones[Alojamiento] IN ${alojIN},'Fecha Venta'[Date]=${todayDAX})`,
 
     // Pick Up últimas 2 semanas
     pickup: `EVALUATE SUMMARIZECOLUMNS(
@@ -889,6 +891,7 @@ function processData(raw, year) {
     meteo: (function(){ var a=raw.meteoFc||[]; var k=a[0]?Object.keys(a[0]):[]; var kd=k.find(function(x){return x.indexOf('date')>=0;})||''; return a.map(function(r){ var ds=String((kd&&r[kd])||'').split('T')[0]; return { d:ds, t:Math.round(r['[T]']||0), w:r['[W]']||'' }; }).filter(function(x){return x.d;}); })(),
     fcOtb: (function(){ var a=raw.fcOtbD||[]; var k=a[0]?Object.keys(a[0]):[]; var kd=k.find(function(x){return x.indexOf('Fecha Estancia')>=0;})||'', kp=k.find(function(x){return x.indexOf('Property')>=0;})||'', ku=k.find(function(x){return x.indexOf('Tipo Habit')>=0;})||''; var m={}; a.forEach(function(r){ var ds=String((kd&&r[kd])||'').split('T')[0]; var p=ds.split('-'); if(p.length<2)return; var yr=+p[0],mo=+p[1]-1; var gp=(kp&&r[kp])?r[kp]:'?', un=(ku&&r[ku])?String(r[ku]).replace(/[()]/g,''):'?'; var key=yr+'|'+mo+'|'+gp+'|'+un; if(!m[key])m[key]={yr:yr,mo:mo,grp:gp,unit:un,rn:0,rev:0}; m[key].rn+=r['[RN]']||0; m[key].rev+=Math.round(r['[Rev]']||0); }); return Object.keys(m).map(function(k){return m[k];}); })(),
     fcOtbDay: (function(){ var a=raw.fcOtbD||[]; var k=a[0]?Object.keys(a[0]):[]; var kd=k.find(function(x){return x.indexOf('Fecha Estancia')>=0;})||''; var m={},ord=[]; a.forEach(function(r){ var ds=String((kd&&r[kd])||'').split('T')[0]; if(!ds)return; if(!m[ds]){m[ds]={d:ds,rn:0,rev:0};ord.push(ds);} m[ds].rn+=r['[RN]']||0; m[ds].rev+=Math.round(r['[Rev]']||0); }); return ord.sort().map(function(d){return m[d];}); })(),
+    fcPkDay: (function(){ var a=raw.fcPkDay||[]; var k=a[0]?Object.keys(a[0]):[]; var kd=k.find(function(x){return x.indexOf('Date')>=0;})||''; return a.map(function(r){ var ds=String((kd&&r[kd])||'').split('T')[0]; return { d:ds, pk:{ '7':{rn:r['[P7R]']||0,rev:Math.round(r['[P7V]']||0)}, '15':{rn:r['[P15R]']||0,rev:Math.round(r['[P15V]']||0)}, '30':{rn:r['[P30R]']||0,rev:Math.round(r['[P30V]']||0)}, '45':{rn:r['[P45R]']||0,rev:Math.round(r['[P45V]']||0)} } }; }).filter(function(x){return x.d;}); })(),
     pace26: aggPace(raw.pace26 || []),
     pace25: aggPace(raw.pace25 || []),
     pu,
@@ -1017,10 +1020,10 @@ exports.handler = async function(event, context) {
       blobSet(cacheKey, { exp: Date.now() + BLOB_TTL_MS, writtenAt: Date.now(), pbiRefreshAt: 0, data: result });
       return ok(result);
     }
-    // 2b) No completó (cliente muy grande en 10s): sirve el último COMPLETO si existe (aunque sea viejo).
+    // 2b) No completó: sirve el último COMPLETO si existe (aunque sea viejo).
     const anyBlob = blobShared || await blobGet(cacheKey);
     if (anyBlob && anyBlob.data && anyBlob.data.__complete) return ok(anyBlob.data);
-    // 2c) Nada todavía: intenta el segundo plano (por si el plan lo soporta) y responde 'pending'.
+    // 2c) Nada todavía: intenta el segundo plano y responde 'pending'.
     triggerBackground(aloj, year);
     return ok({ pending: true, aloj: aloj, year: year });
 
