@@ -2565,9 +2565,9 @@ body { -webkit-font-smoothing: antialiased; }
       <div style="display:flex;align-items:center;gap:8px" id="pfc-bucket-wrap">
         <span style="font-size:10px;color:var(--t5);text-transform:uppercase;letter-spacing:.06em">Si se repite el pick-up de 2025 a</span>
         <div class="pd-win-switch">
-          <button class="pd-win-btn" data-b="7" onclick="setPFCbucket('7',this)">7d</button>
+          <button class="pd-win-btn on" data-b="7" onclick="setPFCbucket('7',this)">7d</button>
           <button class="pd-win-btn" data-b="15" onclick="setPFCbucket('15',this)">15d</button>
-          <button class="pd-win-btn on" data-b="30" onclick="setPFCbucket('30',this)">30d</button>
+          <button class="pd-win-btn" data-b="30" onclick="setPFCbucket('30',this)">30d</button>
           <button class="pd-win-btn" data-b="45" onclick="setPFCbucket('45',this)">45d</button>
         </div>
       </div>
@@ -7376,7 +7376,7 @@ function _qbiAI(){
 
 // ── PACE FORECAST ──
 var PFC_DATA = [{"m":"Ene","cur":{"rn":212,"occ":85.5,"adrR":72,"adrT":88,"revR":15254,"revT":18727},"ly":{"rn":217,"occ":87.5,"adrR":69,"adrT":84,"revR":15010,"revT":18168},"pk":{"7":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0},"15":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0},"30":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0},"45":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0}}},{"m":"Feb","cur":{"rn":202,"occ":90.2,"adrR":85,"adrT":104,"revR":17198,"revT":20907},"ly":{"rn":178,"occ":79.5,"adrR":91,"adrT":110,"revR":16237,"revT":19641},"pk":{"7":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0},"15":{"rn":7,"adrR":73,"adrT":85,"revR":511,"revT":594},"30":{"rn":13,"adrR":79,"adrT":92,"revR":1027,"revT":1190},"45":{"rn":13,"adrR":79,"adrT":92,"revR":1027,"revT":1190}}},{"m":"Mar","cur":{"rn":204,"occ":82.3,"adrR":100,"adrT":117,"revR":20469,"revT":23935},"ly":{"rn":226,"occ":91.1,"adrR":79,"adrT":104,"revR":17864,"revT":23514},"pk":{"7":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0},"15":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0},"30":{"rn":5,"adrR":71,"adrT":87,"revR":354,"revT":434},"45":{"rn":5,"adrR":71,"adrT":87,"revR":354,"revT":434}}},{"m":"Abr","cur":{"rn":209,"occ":87.1,"adrR":133,"adrT":152,"revR":27817,"revT":31771},"ly":{"rn":214,"occ":89.2,"adrR":107,"adrT":126,"revR":22836,"revT":27030},"pk":{"7":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0},"15":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0},"30":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0},"45":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0}}},{"m":"May","cur":{"rn":194,"occ":78.2,"adrR":155,"adrT":180,"revR":30020,"revT":34891},"ly":{"rn":211,"occ":85.1,"adrR":117,"adrT":137,"revR":24647,"revT":29005},"pk":{"7":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0},"15":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0},"30":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0},"45":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0}}},{"m":"Jun","cur":{"rn":153,"occ":63.7,"adrR":182,"adrT":198,"revR":27859,"revT":30316},"ly":{"rn":223,"occ":92.9,"adrR":146,"adrT":166,"revR":32485,"revT":37081},"pk":{"7":{"rn":16,"adrR":115,"adrT":135,"revR":1836,"revT":2159},"15":{"rn":32,"adrR":151,"adrT":173,"revR":4822,"revT":5550},"30":{"rn":62,"adrR":139,"adrT":165,"revR":8639,"revT":10256},"45":{"rn":80,"adrR":139,"adrT":165,"revR":11149,"revT":13168}}},{"m":"Jul","cur":{"rn":98,"occ":39.5,"adrR":207,"adrT":225,"revR":20312,"revT":22082},"ly":{"rn":184,"occ":74.2,"adrR":159,"adrT":183,"revR":29228,"revT":33585},"pk":{"7":{"rn":17,"adrR":146,"adrT":160,"revR":2476,"revT":2716},"15":{"rn":39,"adrR":162,"adrT":183,"revR":6334,"revT":7140},"30":{"rn":77,"adrR":164,"adrT":186,"revR":12618,"revT":14310},"45":{"rn":121,"adrR":164,"adrT":188,"revR":19793,"revT":22703}}},{"m":"Ago","cur":{"rn":52,"occ":21.0,"adrR":261,"adrT":272,"revR":13584,"revT":14153},"ly":{"rn":206,"occ":83.1,"adrR":169,"adrT":190,"revR":34779,"revT":39146},"pk":{"7":{"rn":3,"adrR":147,"adrT":174,"revR":441,"revT":521},"15":{"rn":7,"adrR":124,"adrT":147,"revR":870,"revT":1030},"30":{"rn":61,"adrR":160,"adrT":176,"revR":9780,"revT":10745},"45":{"rn":88,"adrR":163,"adrT":180,"revR":14361,"revT":15809}}},{"m":"Sep","cur":{"rn":108,"occ":45.0,"adrR":135,"adrT":148,"revR":14618,"revT":15992},"ly":{"rn":222,"occ":92.5,"adrR":121,"adrT":138,"revR":26955,"revT":30595},"pk":{"7":{"rn":23,"adrR":116,"adrT":130,"revR":2659,"revT":2982},"15":{"rn":28,"adrR":117,"adrT":131,"revR":3265,"revT":3668},"30":{"rn":40,"adrR":112,"adrT":128,"revR":4491,"revT":5134},"45":{"rn":49,"adrR":118,"adrT":134,"revR":5784,"revT":6587}}},{"m":"Oct","cur":{"rn":66,"occ":26.6,"adrR":150,"adrT":168,"revR":9899,"revT":11101},"ly":{"rn":221,"occ":89.1,"adrR":105,"adrT":124,"revR":23312,"revT":27352},"pk":{"7":{"rn":31,"adrR":84,"adrT":89,"revR":2614,"revT":2774},"15":{"rn":37,"adrR":88,"adrT":95,"revR":3264,"revT":3507},"30":{"rn":37,"adrR":88,"adrT":95,"revR":3264,"revT":3507},"45":{"rn":37,"adrR":88,"adrT":95,"revR":3264,"revT":3507}}},{"m":"Nov","cur":{"rn":12,"occ":5.0,"adrR":99,"adrT":126,"revR":1191,"revT":1511},"ly":{"rn":188,"occ":78.3,"adrR":83,"adrT":104,"revR":15611,"revT":19489},"pk":{"7":{"rn":5,"adrR":57,"adrT":89,"revR":286,"revT":446},"15":{"rn":9,"adrR":58,"adrT":85,"revR":526,"revT":769},"30":{"rn":9,"adrR":58,"adrT":85,"revR":526,"revT":769},"45":{"rn":9,"adrR":58,"adrT":85,"revR":526,"revT":769}}},{"m":"Dic","cur":{"rn":13,"occ":5.2,"adrR":147,"adrT":160,"revR":1914,"revT":2074},"ly":{"rn":191,"occ":77.0,"adrR":106,"adrT":125,"revR":20241,"revT":23790},"pk":{"7":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0},"15":{"rn":2,"adrR":186,"adrT":226,"revR":372,"revT":452},"30":{"rn":2,"adrR":186,"adrT":226,"revR":372,"revT":452},"45":{"rn":9,"adrR":196,"adrT":213,"revR":1760,"revT":1920}}}];
-var PFC_MODE='pace', PFC_BUCKET='30', PFC_REV='T';
+var PFC_MODE='pace', PFC_BUCKET='7', PFC_REV='T';
 var PFC_FIRST_FUTURE=5; // 0=Ene ... hoy=22may2026 => primer mes futuro = Jun (idx5); ene-may ya cerrados
 function setPFCmode(m, el){ PFC_MODE=m; if(el){el.parentElement.querySelectorAll('.pd-win-btn').forEach(function(b){b.classList.remove('on')});el.classList.add('on');} renderPFC(); }
 function setPFCbucket(b, el){ PFC_BUCKET=b; if(el){el.parentElement.querySelectorAll('.pd-win-btn').forEach(function(x){x.classList.remove('on')});el.classList.add('on');} renderPFC(); }
@@ -12401,6 +12401,7 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
     if(full.paceOTBdim)   D.paceOTBdim=(full.paceOTBdim||[]).filter(inSel);
     if(full.paceOTBdimLY) D.paceOTBdimLY=(full.paceOTBdimLY||[]).filter(inSel);
     if(full.fcPk)        D.fcPk=(full.fcPk||[]).filter(inSel);
+    if(full.fcOtb)       D.fcOtb=(full.fcOtb||[]).filter(inSel);
     function propShares(dpUnitArr){
       var tot={}, sel={}, nT={}, nS={}, seenT={}, seenS={};
       (dpUnitArr||[]).forEach(function(r){ if(!r||!r.grp)return; var g=r.grp;
@@ -12477,7 +12478,7 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
     if(list.length===1) return list[0];
     var R=Object.assign({}, list[0]);
     function concat(ff){ var o=[]; list.forEach(function(d){ (d[ff]||[]).forEach(function(r){o.push(r);}); }); return o; }
-    ['dp26','dp25','dpUnit26','dpUnit25','salesDim','salesDimLY','salesCanc','salesCancLY','salesDay','paceOTBdim','paceOTBdimLY','capDim','eventos','geo','fcPk'].forEach(function(ff){ if(list.some(function(d){return d[ff]&&d[ff].length;})) R[ff]=concat(ff); });
+    ['dp26','dp25','dpUnit26','dpUnit25','salesDim','salesDimLY','salesCanc','salesCancLY','salesDay','paceOTBdim','paceOTBdimLY','capDim','eventos','geo','fcPk','fcOtb','fcOtbDay','meteo'].forEach(function(ff){ if(list.some(function(d){return d[ff]&&d[ff].length;})) R[ff]=concat(ff); });
     R.ytd26=aggDP(R.dp26||[]); R.ytd25=aggDP(R.dp25||[]);
     var curM=(list[0].mesActual&&list[0].mesActual.m!=null)?list[0].mesActual.m:(new Date().getMonth());
     var cM=aggDP((R.dp26||[]).filter(function(r){return r.m===curM;})), cL=aggDP((R.dp25||[]).filter(function(r){return r.m===curM;}));
@@ -12712,41 +12713,124 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
 })();
 </script>
 <script id="pfc-dynamic">
-/* Pace Forecast dinámico: reconstruye PFC_DATA desde window.__AB (ya filtrado por
-   cliente/unidad/propiedad): cur=OTB (dp26), ly=cierre LY (dp25), pk=pick-up por ventana
-   real (fcPk del backend, lógica del BI). Reacciona al filtro y al toggle 7/15/30/45.
-   Fallback: si aún no hay fcPk (antes de regenerar), deja el PFC_DATA existente. */
+/* Pace Forecast dinámico v2: multi-año + clima (actual/LY) + desglose por día (▶).
+   Lee window.__AB: fcOtb (OTB mes×unidad, multi-año), fcPk (pick-up por ventana), meteo
+   (clima por fecha), fcOtbDay (OTB por día), dp25 (cierre LY). Reacciona a filtro y toggle. */
 (function(){
   'use strict';
   var MESF=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  var WMAP={'clear-day':'☀️','clear-night':'🌙','cloudy':'☁️','partly-cloudy-day':'⛅','partly-cloudy-night':'☁️','rain':'🌧️','snow':'❄️','sleet':'🌨️','wind':'🌬️','fog':'🌫️'};
   function n(x){return (typeof x==='number'&&!isNaN(x))?x:0;}
-  function aggMonth(arr){ var m={}; (arr||[]).forEach(function(r){ var k=r.m; if(m[k]===undefined)m[k]={rn:0,revT:0,revR:0,disp:0}; m[k].rn+=n(r.rn); m[k].revT+=n(r.revT); m[k].revR+=n(r.revR); m[k].disp+=n(r.disp); }); return m; }
-  function mk(o,cap){ if(!o)return {rn:0,occ:0,adrR:0,adrT:0,revR:0,revT:0}; var d=cap||o.disp||1; var rn=Math.round(o.rn);
-    return {rn:rn, occ:+(o.rn/d*100).toFixed(1), adrR:rn?Math.round(o.revR/o.rn):0, adrT:rn?Math.round(o.revT/o.rn):0, revR:Math.round(o.revR), revT:Math.round(o.revT)}; }
-  function mkCur(p){ if(!p)return {rn:0,occ:0,adrR:0,adrT:0,revR:0,revT:0}; var rn=Math.round(p.rn),rev=Math.round(p.rev),cap=p.av||1;
-    return {rn:rn, occ:+(rn/cap*100).toFixed(1), adrR:rn?Math.round(rev/rn):0, adrT:rn?Math.round(rev/rn):0, revR:rev, revT:rev}; }
-  function mkpk(p){ if(!p)return {rn:0,adrR:0,adrT:0,revR:0,revT:0}; var rn=Math.round(p.rn),rev=Math.round(p.rev);
-    return {rn:rn, adrR:rn?Math.round(rev/rn):0, adrT:rn?Math.round(rev/rn):0, revR:rev, revT:rev}; }
-  function build(){
-    var ab=window.__AB; if(!ab||!ab.fcPk||!ab.fcPk.length) return false;
-    var ly=aggMonth(ab.dp25);
-    var yCY2=(ab.year)||new Date().getFullYear();
-    var curM={}; (ab.pace||[]).forEach(function(p){ if(p.y===yCY2) curM[p.mi]={rn:n(p.rn),rev:n(p.rev),av:n(p.av)}; });
-    var yCY=(ab.year)||new Date().getFullYear(), yLY=yCY-1;
-    var capCY={},capLY={}; (ab.capDim||[]).forEach(function(r){ var mo=r.mo; if(r.y===yCY)capCY[mo]=(capCY[mo]||0)+n(r.cap); else if(r.y===yLY)capLY[mo]=(capLY[mo]||0)+n(r.cap); });
-    var pkm={}; (ab.fcPk||[]).forEach(function(r){ var k=r.mo; if(!pkm[k])pkm[k]={'7':{rn:0,rev:0},'15':{rn:0,rev:0},'30':{rn:0,rev:0},'45':{rn:0,rev:0}};
-      ['7','15','30','45'].forEach(function(w){ if(r.pk&&r.pk[w]){ pkm[k][w].rn+=n(r.pk[w].rn); pkm[k][w].rev+=n(r.pk[w].rev); } }); });
-    var arr=[];
-    for(var i=0;i<12;i++){ var pk=pkm[i]||{'7':{rn:0,rev:0},'15':{rn:0,rev:0},'30':{rn:0,rev:0},'45':{rn:0,rev:0}};
-      arr.push({ m:MESF[i], cur:mkCur(curM[i]), ly:mk(ly[i],capLY[i]), pk:{'7':mkpk(pk['7']),'15':mkpk(pk['15']),'30':mkpk(pk['30']),'45':mkpk(pk['45'])} }); }
-    window.PFC_DATA=arr;
-    window.PFC_FIRST_FUTURE=new Date().getMonth();
-    try{ if(typeof renderPFC==='function') renderPFC(); }catch(e){ console.error('pfc render',e); }
-    return true;
+  function emo(w){return WMAP[w]||'';}
+  function daysInM(y,m){return new Date(y,m+1,0).getDate();}
+  function bucket(){return (window.PFC_BUCKET||'7');}
+  function isT(){return (window.PFC_REV||'T')==='T';}
+
+  function buildPFC(){
+    var ab=window.__AB; if(!ab) return false;
+    var yCY=ab.year||new Date().getFullYear();
+    var today=new Date(); var tY=today.getFullYear(), tM=today.getMonth(), tD=today.getDate();
+    var unitsN=(ab.units&&ab.units.total)||1;
+    var cur={};
+    if(ab.fcOtb&&ab.fcOtb.length){ ab.fcOtb.forEach(function(r){ var k=r.yr+'|'+r.mo; if(!cur[k])cur[k]={rn:0,rev:0}; cur[k].rn+=n(r.rn); cur[k].rev+=n(r.rev); }); }
+    else if(ab.pace&&ab.pace.length){ ab.pace.forEach(function(p){ if((p.y||yCY)===yCY){ var k=yCY+'|'+p.mi; cur[k]={rn:n(p.rn),rev:n(p.rev)}; } }); }
+    else return false;
+    var pk={}; (ab.fcPk||[]).forEach(function(r){ var yr=r.yr||yCY; var k=yr+'|'+r.mo; if(!pk[k])pk[k]={'7':{rn:0,rev:0},'15':{rn:0,rev:0},'30':{rn:0,rev:0},'45':{rn:0,rev:0}}; ['7','15','30','45'].forEach(function(w){ if(r.pk&&r.pk[w]){pk[k][w].rn+=n(r.pk[w].rn);pk[k][w].rev+=n(r.pk[w].rev);} }); });
+    var lyM={}; (ab.dp25||[]).forEach(function(r){ if(!lyM[r.m])lyM[r.m]={rn:0,rev:0}; lyM[r.m].rn+=n(r.rn); lyM[r.m].rev+=n(r.revT); });
+    // clima por yr|mo: temp media + condición dominante
+    var wxAcc={}; (ab.meteo||[]).forEach(function(r){ var p=String(r.d||'').split('-'); if(p.length<2)return; var yr=+p[0],mo=+p[1]-1; var k=yr+'|'+mo; if(!wxAcc[k])wxAcc[k]={t:0,c:0,wc:{}}; wxAcc[k].t+=n(r.t); wxAcc[k].c++; var w=r.w||''; if(w){wxAcc[k].wc[w]=(wxAcc[k].wc[w]||0)+1;} });
+    function wxOf(k){ var a=wxAcc[k]; if(!a||!a.c)return null; var best='',bc=0; Object.keys(a.wc).forEach(function(w){if(a.wc[w]>bc){bc=a.wc[w];best=w;}}); return {t:Math.round(a.t/a.c), w:best}; }
+    // días por yr|mo desde fcOtbDay + clima por día
+    var wxDay={}; (ab.meteo||[]).forEach(function(r){ if(r.d) wxDay[r.d]={t:Math.round(n(r.t)),w:r.w||''}; });
+    var daysYM={}; (ab.fcOtbDay||[]).forEach(function(r){ var p=String(r.d||'').split('-'); if(p.length<3)return; var yr=+p[0],mo=+p[1]-1,dd=+p[2]; var k=yr+'|'+mo; (daysYM[k]=daysYM[k]||[]).push({d:r.d,day:dd,rn:n(r.rn),rev:n(r.rev),wx:wxDay[r.d]||null}); });
+    // orden de meses futuros (desde hoy) presentes en cur
+    var keys=Object.keys(cur).map(function(k){var p=k.split('|');return {yr:+p[0],mo:+p[1],k:k};})
+      .filter(function(o){ return (o.yr>tY)||(o.yr===tY&&o.mo>=tM); })
+      .sort(function(a,b){ return a.yr!==b.yr? a.yr-b.yr : a.mo-b.mo; });
+    var arr=keys.map(function(o){
+      var c=cur[o.k]||{rn:0,rev:0};
+      var rem=(o.yr===tY&&o.mo===tM)?(daysInM(o.yr,o.mo)-tD+1):daysInM(o.yr,o.mo);
+      var cap=unitsN*Math.max(1,rem);
+      var lyv=(o.yr===yCY)?(lyM[o.mo]||null):null;
+      var lycap=lyv?unitsN*daysInM(o.yr-1,o.mo):0;
+      var p=pk[o.k]||{'7':{rn:0,rev:0},'15':{rn:0,rev:0},'30':{rn:0,rev:0},'45':{rn:0,rev:0}};
+      var days=(daysYM[o.k]||[]).slice().sort(function(a,b){return a.day-b.day;}).map(function(d){
+        return { lbl:d.day, rn:d.rn, occ:+(d.rn/Math.max(1,unitsN)*100).toFixed(0), adr:d.rn?Math.round(d.rev/d.rn):0, rev:d.rev, wx:d.wx };
+      });
+      return { yr:o.yr, mo:o.mo, mLabel: MESF[o.mo]+(o.yr!==yCY?(" '"+String(o.yr).slice(2)):''),
+        cur:{rn:Math.round(c.rn), occ:+(c.rn/cap*100).toFixed(1), adr:c.rn?Math.round(c.rev/c.rn):0, rev:Math.round(c.rev)},
+        ly: lyv?{rn:Math.round(lyv.rn), occ:lycap?+(lyv.rn/lycap*100).toFixed(1):0, adr:lyv.rn?Math.round(lyv.rev/lyv.rn):0, rev:Math.round(lyv.rev)}:null,
+        pk:{'7':{rn:Math.round(p['7'].rn),rev:Math.round(p['7'].rev)},'15':{rn:Math.round(p['15'].rn),rev:Math.round(p['15'].rev)},'30':{rn:Math.round(p['30'].rn),rev:Math.round(p['30'].rev)},'45':{rn:Math.round(p['45'].rn),rev:Math.round(p['45'].rev)}},
+        wx: wxOf(o.k), wxLY: wxOf((o.yr-1)+'|'+o.mo), days: days };
+    });
+    window.PFC_DATA2=arr;
+    return arr.length>0;
   }
-  window.__buildPFC=build;
+  window.__buildPFC2=buildPFC;
+
+  function fmt(v){ return (v==null||isNaN(v))?'—':new Intl.NumberFormat('es-ES').format(Math.round(v)); }
+  var expanded={};
+  window.__pfcDay=function(i){ expanded[i]=!expanded[i]; render(); };
+
+  function render(){
+    var arr=window.PFC_DATA2; var tbl=document.getElementById('pfc-table'); if(!tbl||!arr) return;
+    var bk=bucket(); var T=isT();
+    var st=document.getElementById('pfc-state'); if(st) st.innerHTML='<i class="ti ti-eye"></i> Si el pick-up de <strong>'+bk+' días</strong> de '+(((window.__AB&&window.__AB.year)||new Date().getFullYear())-1)+' se repite · revenue <strong>'+(T?'Total':'Room')+'</strong>';
+    var ct=document.getElementById('pfc-chart-tag'); if(ct) ct.textContent='OTB actual + pick-up '+bk+'d proyectado';
+    var h='<thead><tr class="pfc-grouphead"><th></th><th class="pfc-gh" colspan="2">Clima</th><th class="pfc-gh pfc-gh1" colspan="4">OTB actual</th><th class="pfc-gh pfc-gh2" colspan="3">Pick-up '+bk+'d</th><th class="pfc-gh pfc-gh3" colspan="3">Forecast · cierre</th><th class="pfc-gh pfc-gh4">vs LY</th></tr>'+
+      '<tr><th style="text-align:left">Mes</th><th class="pfc-g1">Hoy</th><th class="pfc-g1">LY</th>'+
+      '<th class="pfc-g1">Occ%</th><th class="pfc-g1">RNs</th><th class="pfc-g1">ADR</th><th class="pfc-g1">Rev</th>'+
+      '<th class="pfc-g2">RNs</th><th class="pfc-g2">ADR</th><th class="pfc-g2">Rev</th>'+
+      '<th class="pfc-g3">RNs</th><th class="pfc-g3">ADR</th><th class="pfc-g3">Rev</th><th class="pfc-g4">Δ Rev</th></tr></thead><tbody>';
+    arr.forEach(function(r,i){
+      var p=r.pk[bk]||{rn:0,rev:0};
+      var fRn=r.cur.rn+p.rn, fRev=r.cur.rev+p.rev, fAdr=fRn?Math.round(fRev/fRn):0;
+      var lyRev=r.ly?r.ly.rev:0, dRev=lyRev?Math.round((fRev-lyRev)/lyRev*100):null;
+      var arrow=(r.days&&r.days.length)?'<span style="cursor:pointer;color:var(--cyan)" onclick="window.__pfcDay('+i+')">'+(expanded[i]?'▼':'▶')+'</span> ':'';
+      h+='<tr><td style="text-align:left;color:var(--t2)">'+arrow+r.mLabel+'</td>'+
+        '<td class="pfc-g1" style="text-align:center">'+(r.wx?emo(r.wx.w)+' '+r.wx.t+'°':'—')+'</td>'+
+        '<td class="pfc-g1" style="text-align:center;color:var(--t4)">'+(r.wxLY?emo(r.wxLY.w)+' '+r.wxLY.t+'°':'—')+'</td>'+
+        '<td class="pfc-g1" style="text-align:right;color:var(--t3)">'+r.cur.occ+'%</td>'+
+        '<td class="pfc-g1" style="text-align:right">'+fmt(r.cur.rn)+'</td>'+
+        '<td class="pfc-g1" style="text-align:right;color:var(--t4)">'+r.cur.adr+'€</td>'+
+        '<td class="pfc-g1" style="text-align:right;color:var(--t3)">'+fmt(r.cur.rev)+'€</td>'+
+        '<td class="pfc-g2" style="text-align:right;color:var(--cyan)">+'+fmt(p.rn)+'</td>'+
+        '<td class="pfc-g2" style="text-align:right;color:var(--t4)">'+(p.rn?Math.round(p.rev/p.rn):0)+'€</td>'+
+        '<td class="pfc-g2" style="text-align:right;color:var(--t3)">'+fmt(p.rev)+'€</td>'+
+        '<td class="pfc-g3" style="text-align:right;font-weight:600">'+fmt(fRn)+'</td>'+
+        '<td class="pfc-g3" style="text-align:right;color:var(--cyan)">'+fAdr+'€</td>'+
+        '<td class="pfc-g3" style="text-align:right;font-weight:500">'+fmt(fRev)+'€</td>'+
+        '<td class="pfc-g4" style="text-align:right;color:'+(dRev==null?'var(--t5)':(dRev>=0?'var(--cyan)':'rgba(246,196,83,.85)'))+'">'+(dRev==null?'—':((dRev>=0?'+':'')+dRev+'%'))+'</td></tr>';
+      if(expanded[i] && r.days){ r.days.forEach(function(d){ var dpRn=p.rn&&r.cur.rn?Math.round(p.rn*d.rn/r.cur.rn):0; var dfRn=d.rn+dpRn;
+        h+='<tr style="background:rgba(255,255,255,.02);font-size:11px">'+
+          '<td style="text-align:left;padding-left:24px;color:var(--t4)">'+d.lbl+'</td>'+
+          '<td class="pfc-g1" style="text-align:center;color:var(--t4)">'+(d.wx?emo(d.wx.w)+' '+d.wx.t+'°':'—')+'</td><td class="pfc-g1"></td>'+
+          '<td class="pfc-g1" style="text-align:right;color:var(--t4)">'+d.occ+'%</td>'+
+          '<td class="pfc-g1" style="text-align:right;color:var(--t4)">'+fmt(d.rn)+'</td>'+
+          '<td class="pfc-g1" style="text-align:right;color:var(--t5)">'+d.adr+'€</td>'+
+          '<td class="pfc-g1" style="text-align:right;color:var(--t4)">'+fmt(d.rev)+'€</td>'+
+          '<td class="pfc-g2" style="text-align:right;color:var(--t5)">+'+fmt(dpRn)+'</td><td class="pfc-g2"></td><td class="pfc-g2"></td>'+
+          '<td class="pfc-g3" style="text-align:right;color:var(--t4)">'+fmt(dfRn)+'</td><td class="pfc-g3"></td><td class="pfc-g3"></td><td class="pfc-g4"></td></tr>';
+      }); }
+    });
+    tbl.innerHTML=h+'</tbody>';
+    // gráfica
+    try{ var el=document.getElementById('c-pfc'); if(el&&window.Chart){
+      var labels=arr.map(function(r){return r.mLabel;});
+      var otb=arr.map(function(r){return r.cur.rn;});
+      var pkA=arr.map(function(r){return (r.pk[bk]||{rn:0}).rn;});
+      var adrF=arr.map(function(r){var pp=r.pk[bk]||{rn:0,rev:0};var fr=r.cur.rn+pp.rn;return fr?Math.round((r.cur.rev+pp.rev)/fr):null;});
+      var ex=window.Chart.getChart?window.Chart.getChart(el):null; if(ex)ex.destroy();
+      new window.Chart(el,{data:{labels:labels,datasets:[
+        {type:'bar',label:'OTB',data:otb,backgroundColor:'#2F8CFF',stack:'s'},
+        {type:'bar',label:'Pick-up',data:pkA,backgroundColor:'#5af3ff',stack:'s',borderRadius:3},
+        {type:'line',label:'ADR final',data:adrF,borderColor:'#5af3ff',borderWidth:2,pointRadius:2,tension:.3,yAxisID:'y2',spanGaps:true}
+      ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#6b7280',font:{size:9}}},y:{stacked:true,grid:{color:'#1A2C44'},ticks:{color:'#6b7280',font:{size:9}}},y2:{position:'right',grid:{display:false},ticks:{color:'#9aa0aa',font:{size:9},callback:function(v){return '€'+v;}}}}}});
+    } }catch(e){console.error('pfc chart',e);}
+  }
+  window.renderPFC=function(){ try{ if(buildPFC()) render(); }catch(e){console.error('pfc',e);} };
   var last=null;
-  setInterval(function(){ try{ if(window.__AB && window.__AB!==last && window.__AB.fcPk){ last=window.__AB; build(); } }catch(e){} }, 600);
+  setInterval(function(){ try{ if(window.__AB && window.__AB!==last && (window.__AB.fcOtb||window.__AB.pace)){ last=window.__AB; window.renderPFC(); } }catch(e){} }, 600);
 })();
 </script>
 </body>
