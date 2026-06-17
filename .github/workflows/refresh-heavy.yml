@@ -36,7 +36,7 @@ jobs:
           PBI_DATASET_ID:      ${{ secrets.PBI_DATASET_ID }}
           TICKETMASTER_KEY:    ${{ secrets.TICKETMASTER_KEY }}
           CALENDARIFIC_KEY:    ${{ secrets.CALENDARIFIC_KEY }}
-          EVENTS_TTL_DAYS:     '3'
+          EVENTS_TTL_DAYS:     '7'
           HOLIDAYS_TTL_DAYS:   '21'
           QUERY_SPACING_MS:    '600'
           QUERY_TIMEOUT_MS:    '180000'
