@@ -10073,6 +10073,7 @@ window.PACE_DAILY_AV=8;
 
   window.buildPaceTable=function(){
     var tb=document.getElementById('pace-table-body'); if(!tb) return;
+    window.__paceView='month';
     setThead();
     var wrap=tb.closest('table')?tb.closest('table').parentElement:null;
     if(window.__paceView==='day'){
@@ -10212,9 +10213,8 @@ window.PACE_DAILY_AV=8;
       b.style.background=on?'#2F8CFF':'transparent'; b.style.color=on?'#fff':'inherit'; });
   }
   function injectToggles(){
-    var tb=document.getElementById('pace-table-body'); injectToggle(tb?tb.closest('.card'):null);
-    var cv=document.getElementById('c-pace'); injectToggle(cv?cv.closest('.card'):null);
-    syncToggles();
+    // Toggle Mes/Día retirado: la tabla usa vista Mes con desglose por día (flecha por mes)
+    document.querySelectorAll('.pace-view-toggle').forEach(function(b){ if(b&&b.remove) b.remove(); });
   }
 
   window.__applyPaceFix=function(){
@@ -10246,7 +10246,7 @@ window.PACE_DAILY_AV=8;
   }, 800);
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){ setTimeout(window.__applyPaceFix,400); });
   else setTimeout(window.__applyPaceFix,400);
-  document.addEventListener('click',function(ev){ if(ev.target&&ev.target.closest&&ev.target.closest('.pace-view-toggle')) return; setTimeout(window.__applyPaceFix,250); }, true);
+  document.addEventListener('click',function(ev){ if(ev.target&&ev.target.closest&&(ev.target.closest('.pace-view-toggle')||ev.target.closest('#pace-table-body'))) return; setTimeout(window.__applyPaceFix,250); }, true);
 
   // Desglose por DÍA dentro de cada mes (vista Mes) — datos diarios reales
   window.__buildPaceDayRows=function(yr,mi){
@@ -12324,7 +12324,7 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
 })();
 
 </script>
-<script>console.log("%cINNALYTICA BUILD = B8-pickupfix","color:#5af3ff;font-weight:bold");window.__BUILD="B11-pace-dia";</script>
+<script>console.log("%cINNALYTICA BUILD = B8-pickupfix","color:#5af3ff;font-weight:bold");window.__BUILD="B13-pace-fix";</script>
 
 <script id="global-propunit-filter">
 /* Filtro GLOBAL por propiedad/unidad (conjunto de unidades). Deriva un dataset filtrado
@@ -12888,5 +12888,93 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
 })();
 </script>
 
+<script id="sales-dd-generic">
+(function(){
+  'use strict';
+  var MESsd=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  // dim de la config -> campo en salesDim (f) y en capDim (cap). day/dow no soportados (salesDim es mensual)
+  var SDDIM={ year:{f:'y',cap:'y'}, month:{f:'mo',cap:'mo'}, property:{f:'grp',cap:'grp'},
+    group:{f:'grp',cap:'grp'}, unit:{f:'unit',cap:'unit'}, channel:{f:'ch'}, market:{f:'mkt'},
+    location:{f:'loc'}, rate:{f:'rate'} };
+  function n(x){ return (typeof x==='number'&&!isNaN(x))?x:0; }
+  function dims(){ return (window.DD_active_dims||[]).filter(function(d){return SDDIM[d];}); }
+  function CY(){ return (window.__AB&&window.__AB.salesDim)||[]; }
+  function LY(){ return (window.__AB&&window.__AB.salesDimLY)||[]; }
+  function CAP(){ return (window.__AB&&window.__AB.capDim)||[]; }
+  function yCY(){ return (window.__AB&&window.__AB.year)||new Date().getFullYear(); }
+  function filt(rows, path){ return rows.filter(function(r){ for(var d in path){ var f=SDDIM[d].f; if(String(r[f])!==String(path[d])) return false; } return true; }); }
+  function capFilt(path, yr){ return CAP().filter(function(r){ if(yr!=null && +r.y!==+yr) return false; for(var d in path){ var cf=SDDIM[d].cap; if(!cf) continue; if(String(r[cf])!==String(path[d])) return false; } return true; }); }
+  function agg(rows, capRows){
+    var t={rn:0,bk:0,ni:0,revT:0,revR:0,cm:0,cancBK:0,disp:0,oor:0,units:0};
+    rows.forEach(function(r){ t.rn+=n(r.rn); t.bk+=n(r.bk); t.ni+=n(r.ni); t.revR+=n(r.revR); t.revT+=n(r.revR)+n(r.clean)+n(r.extra); t.cm+=n(r.comR)+n(r.comC); });
+    (capRows||[]).forEach(function(c){ t.disp+=n(c.cap); t.oor+=n(c.blk); });
+    var d=t.disp||1;
+    t.occ=+(t.rn/d*100).toFixed(2); t.nocc=+(t.rn*0.95/d*100).toFixed(2);
+    t.adrT=t.rn>0?+(t.revT/t.rn).toFixed(1):0; t.adrR=t.rn>0?+(t.revR/t.rn).toFixed(1):0;
+    t.nadrT=t.rn>0?+((t.revT-t.cm)/t.rn).toFixed(1):0; t.nadrR=t.rn>0?+((t.revR-t.cm)/t.rn).toFixed(1):0;
+    t.los=t.rn>0?+(t.ni/t.rn).toFixed(1):0; t.nRevT=t.revT-t.cm; t.nRevR=t.revR-t.cm;
+    t.revPAR=+(t.revT/d).toFixed(1); t.nRevPAR=+(t.nRevT/d).toFixed(1);
+    t.cmPct=t.revT>0?+(t.cm/t.revT*100).toFixed(2):0;
+    t.cancRate=t.bk>0?+(t.cancBK/(t.bk+t.cancBK)*100).toFixed(2):0;
+    return t;
+  }
+  function distinct(rows, dim){ var f=SDDIM[dim].f, seen={}, out=[]; rows.forEach(function(r){ var v=r[f]; if(v==null)v='?'; if(!(v in seen)){seen[v]=1; out.push(v);} }); return out; }
+  function lblTxt(dim,val){ if(dim==='month') return MESsd[+val]||('Mes '+val); return String(val); }
+  function lblCell(txt,lvl,isT,arrow){ var fw=isT?'700':(lvl===0?'600':'400'); return '<td class="dd-label" style="padding-left:'+(14+lvl*14)+'px;font-weight:'+fw+'">'+(arrow||'')+txt+'</td>'; }
+  function rowCells(cyRows, path, yr){ var cyA=agg(cyRows, capFilt(path, yCY())); var lyRows=filt(LY(), stripYear(path)); var lyA=agg(lyRows, capFilt(stripYear(path), yCY()-1)); return (typeof allC==='function')?allC(cyA,lyA):''; }
+  function stripYear(path){ var o={}; for(var k in path){ if(k!=='year') o[k]=path[k]; } return o; }
+  // Genera filas del nivel `lvl` bajo `path`
+  window.__sddLevel=function(lvl, path){
+    var dd=dims(); if(lvl>=dd.length) return '';
+    var dim=dd[lvl];
+    var cyHere=filt(CY(), path);
+    var vals=distinct(cyHere, dim);
+    // ordenar: mes por número; resto por revT desc
+    if(dim==='month'||dim==='year'){ vals.sort(function(a,b){return (+a)-(+b);}); }
+    else { vals.sort(function(a,b){ var ra=agg(cyHere.filter(function(r){return String(r[SDDIM[dim].f])===String(a);}),[]).revT; var rb=agg(cyHere.filter(function(r){return String(r[SDDIM[dim].f])===String(b);}),[]).revT; return rb-ra; }); }
+    var isLast=(lvl===dd.length-1);
+    var html='';
+    vals.forEach(function(v){
+      var childPath={}; for(var k in path) childPath[k]=path[k]; childPath[dim]=v;
+      var cyRows=cyHere.filter(function(r){return String(r[SDDIM[dim].f])===String(v);});
+      var arrow=isLast?'':'<span class="sdd-arrow" style="color:var(--t5);font-size:9px;margin-right:5px;display:inline-block;width:9px;text-align:center">▶</span>';
+      var pj=JSON.stringify(childPath).replace(/"/g,'&quot;');
+      html+='<tr class="sdd-row'+(lvl>0?' dd-child':'')+'" data-lvl="'+lvl+'" data-path="'+pj+'"'+(isLast?'':' data-exp="0"')+' style="'+(lvl>0?'background:rgba(47,140,255,0.02);':'')+'cursor:'+(isLast?'default':'pointer')+'">'+
+        lblCell(lblTxt(dim,v),lvl,false,arrow)+ rowCellsByRows(cyRows, childPath) +'</tr>';
+    });
+    return html;
+  };
+  function rowCellsByRows(cyRows, childPath){ var cyA=agg(cyRows, capFilt(childPath, yCY())); var lyRows=filt(LY(), stripYear(childPath)); var lyA=agg(lyRows, capFilt(stripYear(childPath), yCY()-1)); return (typeof allC==='function')?allC(cyA,lyA):''; }
+  window.buildDD=function(D){
+    try{
+      if(!D||!D.salesDim||!D.salesDim.length) return '';
+      var dd=dims(); if(!dd.length) return '<tr><td class="dd-label" style="padding:14px;color:var(--t5)">Desglose no disponible para esa dimensi\u00f3n (D\u00eda/D\u00eda de la semana no est\u00e1n en el hecho mensual). Usa A\u00f1o, Mes, Propiedad, Grupo, Unidad, Canal, Mercado, Ubicaci\u00f3n o Tarifa.</td></tr>';
+      var html=window.__sddLevel(0,{});
+      // Total
+      var tA=agg(CY(), capFilt({}, yCY())); var tL=agg(LY(), capFilt({}, yCY()-1));
+      html+='<tr class="dd-total"><td class="dd-label" style="font-weight:700">Total</td>'+((typeof allC==='function')?allC(tA,tL):'')+'</tr>';
+      return html;
+    }catch(e){ console.warn('buildSalesDD',e); return ''; }
+  };
+  // clic: expandir/contraer nivel a nivel
+  document.addEventListener('click', function(e){
+    var tr=e.target&&e.target.closest?e.target.closest('tr.sdd-row'):null; if(!tr) return;
+    var tb=tr.closest('tbody'); if(!tb||tb.id!=='dd-tbody') return;
+    var ar=tr.querySelector('.sdd-arrow'); if(!ar) return;
+    var lvl=parseInt(tr.getAttribute('data-lvl')||'0',10);
+    if(tr.getAttribute('data-exp')==='1'){
+      var nn=tr.nextElementSibling;
+      while(nn && nn.getAttribute && parseInt(nn.getAttribute('data-lvl')||'-1',10)>lvl){ var nx=nn.nextElementSibling; nn.parentNode.removeChild(nn); nn=nx; }
+      tr.setAttribute('data-exp','0'); ar.textContent='▶';
+    } else {
+      var path=JSON.parse((tr.getAttribute('data-path')||'{}').replace(/&quot;/g,'"'));
+      var h=window.__sddLevel(lvl+1, path);
+      if(h) tr.insertAdjacentHTML('afterend', h);
+      tr.setAttribute('data-exp','1'); ar.textContent='▼';
+    }
+  });
+})();
+
+</script>
 </body>
 </html>
