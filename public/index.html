@@ -10484,26 +10484,44 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
     if(!card){ var t=document.getElementById('pickup-tab-pickup'); if(!t)return; card=document.createElement('div'); card.className='card'; card.id='pickup-table-card'; card.style.marginTop='12px'; t.appendChild(card); }
     var h='';
     if(DIM==='mes'){
-      var keys=Object.keys(PK.cyM).sort(function(a,b){var A=a.split('|'),B=b.split('|');return (+A[0])-(+B[0])||(+A[1])-(+B[1]);});
-      var byYear={}; keys.forEach(function(k){ var y=+k.split('|')[0]; (byYear[y]=byYear[y]||[]).push(k); });
-      Object.keys(byYear).sort().forEach(function(y){
+      // Años = unión de años con datos CY (cyM) y años CY implícitos por LY (lyM año+1)
+      var ySet={};
+      Object.keys(PK.cyM).forEach(function(k){ ySet[+k.split('|')[0]]=1; });
+      Object.keys(PK.lyM).forEach(function(k){ ySet[(+k.split('|')[0])+1]=1; });
+      var years=Object.keys(ySet).map(Number).sort(function(a,b){return a-b;});
+      years.forEach(function(y){
+        // Meses = unión de cyM(y) y lyM(y-1) -> muestra también meses que sólo existen en LY
+        var moSet={};
+        Object.keys(PK.cyM).forEach(function(k){ var p=k.split('|'); if(+p[0]===y) moSet[+p[1]]=1; });
+        Object.keys(PK.lyM).forEach(function(k){ var p=k.split('|'); if(+p[0]===y-1) moSet[+p[1]]=1; });
+        var months=Object.keys(moSet).map(Number).sort(function(a,b){return a-b;});
         var yc={rn:0,rev:0,crn:0}, yl={rn:0,rev:0};
-        byYear[y].forEach(function(k){ var m=PK.cyM[k]; yc.rn+=m.rn;yc.rev+=m.rev;yc.crn+=m.crn;
-          var p=k.split('|'); var lk=(+p[0]-1)+'|'+p[1]; var lm=PK.lyM[lk]; if(lm){yl.rn+=lm.rn;yl.rev+=lm.rev;} });
+        months.forEach(function(mo){ var m=PK.cyM[y+'|'+mo]||{rn:0,rev:0,crn:0}; var lm=PK.lyM[(y-1)+'|'+mo]||{rn:0,rev:0};
+          yc.rn+=m.rn;yc.rev+=m.rev;yc.crn+=(m.crn||0); yl.rn+=lm.rn;yl.rev+=lm.rev; });
         h+=row('<td style="text-align:left;font-weight:700">'+y+'</td>'+metricCells(yc.rn,yl.rn,yc.rev,yl.rev),'',true);
-        byYear[y].forEach(function(k){
-          var p=k.split('|'); var mo=+p[1]; var m=PK.cyM[k];
-          var lk=(+p[0]-1)+'|'+mo; var lm=PK.lyM[lk]||{rn:0,rev:0};
+        months.forEach(function(mo){
+          var m=PK.cyM[y+'|'+mo]||{rn:0,rev:0,crn:0};
+          var lm=PK.lyM[(y-1)+'|'+mo]||{rn:0,rev:0};
           var ek=y+'-'+mo; var open=EXP[ek];
           h+=row('<td style="text-align:left;padding-left:18px;cursor:pointer" onclick="window.__pkExp(\''+ek+'\')">'
             +'<span style="display:inline-block;width:12px;color:var(--t5)">'+(open?'▾':'▸')+'</span>'+MESL[mo]+' '+y+'</td>'
             +metricCells(m.rn,lm.rn,m.rev,lm.rev),'',false);
           if(open){
-            var dks=Object.keys(PK.cyS).filter(function(sd){ var d=parseD(sd); return d.getFullYear()===y && d.getMonth()===mo; }).sort();
-            if(!dks.length){ h+=row('<td style="text-align:left;padding-left:34px;color:var(--t5)">sin desglose diario'+(dimF()?' (totales)':'')+'</td><td colspan="9"></td>'); }
-            dks.forEach(function(sd){ var c=PK.cyS[sd]; var lyd=PK.lyS[sd.slice(5)]||{rn:0,rev:0};
+            // Días CY (coerción de año a número: getFullYear() es number, y era string)
+            var dSet={};
+            Object.keys(PK.cyS).forEach(function(sd){ var d=parseD(sd); if(d.getFullYear()===(+y) && d.getMonth()===mo) dSet[sd]=1; });
+            var dks=Object.keys(dSet).sort();
+            // Días que sólo existen en LY (lyS está clavado por MM-DD): mismo mes
+            var lyOnly=[];
+            Object.keys(PK.lyS).forEach(function(mmdd){ var pp=mmdd.split('-'); if((+pp[0]-1)===mo){ var sdC=(+y)+'-'+mmdd; if(!dSet[sdC]) lyOnly.push(mmdd); } });
+            lyOnly.sort();
+            if(!dks.length && !lyOnly.length){ h+=row('<td style="text-align:left;padding-left:34px;color:var(--t5)">sin desglose diario'+(dimF()?' (totales)':'')+'</td><td colspan="9"></td>'); }
+            dks.forEach(function(sd){ var c=PK.cyS[sd]||{rn:0,rev:0}; var lyd=PK.lyS[sd.slice(5)]||{rn:0,rev:0};
               var dd=sd.split('-'); h+=row('<td style="text-align:left;padding-left:34px;color:var(--t5);font-size:11px">'+dd[2]+' '+MESL[mo]+'</td>'
                 +metricCells(c.rn,lyd.rn,c.rev,lyd.rev),'',false); });
+            lyOnly.forEach(function(mmdd){ var lyd=PK.lyS[mmdd]||{rn:0,rev:0}; var dd=mmdd.split('-');
+              h+=row('<td style="text-align:left;padding-left:34px;color:var(--t5);font-size:11px">'+dd[1]+' '+MESL[mo]+'</td>'
+                +metricCells(0,lyd.rn,0,lyd.rev),'',false); });
           }
         });
       });
@@ -11443,10 +11461,11 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
     var gOrder=['demand','occupancy','pricing','revenue','costs','customer','cancelled'];
     var gL={demand:'Demand & Activity',occupancy:'Occupancy & Capacity',pricing:'Pricing',revenue:'Revenue & RevPAR',costs:'Costs & Profitability',customer:'Customer Value',cancelled:'Cancellations'};
     var L={year:'Año',month:'Mes',property:'Propiedad',group:'Grupo',channel:'Canal',room:'Unidad',location:'Ubicación',rate:'Tarifa',market:'Mercado'};
+    var _cmpL=String((ab.__period&&ab.__period.lyY)||(window.PERIOD_FILTER&&window.PERIOD_FILTER.cmpYear)||2025);
     var hr1='<tr><th rowspan="2" style="text-align:left;min-width:150px;color:var(--t4)">'+dims.map(function(x){return L[x]||x;}).join(' → ')+'</th>';
     gOrder.forEach(function(g){ if(!hGroups[g])return; hr1+='<th class="th-group" colspan="'+(hGroups[g].length*3)+'">'+gL[g]+'</th>'; });
     hr1+='</tr><tr>';
-    kpis.forEach(function(k){ var n=DD_KPIS[k].n.replace(/^\d+\.\s*/,''); hr1+='<th class="th-cy" title="'+n+'">'+n+'</th><th class="th-compare">2025</th><th class="th-diff">Δ</th>'; });
+    kpis.forEach(function(k){ var n=DD_KPIS[k].n.replace(/^\d+\.\s*/,''); hr1+='<th class="th-cy" title="'+n+'">'+n+'</th><th class="th-compare">'+_cmpL+'</th><th class="th-diff">Δ</th>'; });
     hr1+='</tr>'; thead.innerHTML=hr1;
 
     var html='';
@@ -12349,7 +12368,7 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
 })();
 
 </script>
-<script>console.log("%cINNALYTICA BUILD = B8-pickupfix","color:#5af3ff;font-weight:bold");window.__BUILD="B26-period-allmod";</script>
+<script>console.log("%cINNALYTICA BUILD = B8-pickupfix","color:#5af3ff;font-weight:bold");window.__BUILD="B28-period-pickup";</script>
 
 <script id="global-propunit-filter">
 /* Filtro GLOBAL por propiedad/unidad (conjunto de unidades). Deriva un dataset filtrado
@@ -12972,14 +12991,36 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
     var cCY=CAP.filter(function(r){return r.y===cyY&&monthOk(cyM,r.mo);});
     var cLY=CAP.filter(function(r){return r.y===lyY&&monthOk(lyM,r.mo);});
     var dp26=dpM(cy,cCY), dp25=dpM(ly,cLY);
+    // El Deep Dive hace match estricto por año (gLy[year]); el backend alinea LY al año CY.
+    // Remapeamos el año de las filas LY a cyY para que el Deep Dive las encuentre.
+    var lyAligned=ly.map(function(r){var o={};for(var _k in r)o[_k]=r[_k];o.y=cyY;return o;});
     return Object.assign({}, ORIG, {
-      salesDim:cy, salesDimLY:ly, dp26:dp26, dp25:dp25,
+      salesDim:cy, salesDimLY:lyAligned, dp26:dp26, dp25:dp25, __origYear:(ORIG.__origYear||ORIG.year||dy),
       ytd26:Object.assign({},ORIG.ytd26,aggDP(dp26)), ytd25:Object.assign({},ORIG.ytd25,aggDP(dp25)),
       dpUnit26:dpU(cy,cCY), dpUnit25:dpU(ly,cLY),
       dpChan26:chanM(cy), dpChan25:chanM(ly), booker:bookM(cy),
       year:cyY, __period:{cyY:cyY,lyY:lyY,cyM:cyM,lyM:lyM}
     });
   }
+  // Reconstruye un dataset LIMPIO (sin periodo) desde monthlyAll — para sanear __AB_FULL si quedó contaminado
+  function rebuildClean(D){
+    if(!D) return D;
+    if(!D.monthlyAll || !D.monthlyAll.length){ var c=Object.assign({},D); delete c.__period; return c; }
+    var oy=D.__origYear||(D.__period&&D.__period.cyY)||D.year||2026;
+    var MA=D.monthlyAll, CAP=D.capDim||[];
+    var cy=MA.filter(function(r){return r.y===oy;}), ly=MA.filter(function(r){return r.y===oy-1;});
+    var cCY=CAP.filter(function(r){return r.y===oy;}), cLY=CAP.filter(function(r){return r.y===oy-1;});
+    var dp26=dpM(cy,cCY), dp25=dpM(ly,cLY);
+    var base=Object.assign({}, D, {
+      salesDim:cy, salesDimLY:ly, dp26:dp26, dp25:dp25,
+      ytd26:Object.assign({},D.ytd26,aggDP(dp26)), ytd25:Object.assign({},D.ytd25,aggDP(dp25)),
+      dpUnit26:dpU(cy,cCY), dpUnit25:dpU(ly,cLY),
+      dpChan26:chanM(cy), dpChan25:chanM(ly), booker:bookM(cy),
+      year:oy, __origYear:oy
+    });
+    delete base.__period; return base;
+  }
+  window.__rebuildCleanFull=rebuildClean;
   // Punto único: applyData llama a esto con cada dataset
   window.__periodTransform=function(D){
     try{
@@ -12996,7 +13037,12 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
   // Recordar la última selección de propiedad/unidad para replicarla al cambiar periodo
   if(window.__applyCore && !window.__applyCore.__pf){
     var _ac=window.__applyCore;
-    window.__applyCore=function(su,sg){ window.__lastSU=su||{}; window.__lastSG=sg||{}; return _ac.apply(this,arguments); };
+    window.__applyCore=function(su,sg){
+      window.__lastSU=su||{}; window.__lastSG=sg||{};
+      // __AB_FULL debe estar LIMPIO (sin periodo). Si quedó contaminado, reconstruir desde monthlyAll.
+      try{ var src=window.__AB_FULL||window.__AB; if(src && src.__period){ window.__AB_FULL=rebuildClean(src); } }catch(e){ console.error('[period] saneo full', e); }
+      return _ac.apply(this,arguments);
+    };
     window.__applyCore.__pf=1;
   }
   window.__applyPeriod=function(){
