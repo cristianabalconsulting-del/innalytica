@@ -7679,28 +7679,14 @@ function refreshPDtable(){
   var html=''; var totals={}; kpis.forEach(function(k){ totals[k]={cy:0,comp:0}; });
   var dims=PD_active_dims.filter(function(d){return PD_DIM_DATA[d]});
 
-  function renderLevel(level, accMult, parentLabel){
-    var dim=dims[level];
-    var data=PD_DIM_DATA[dim];
-    var isLast=(level===dims.length-1);
-    var indent=12+level*18;
-    data.forEach(function(row){
-      var m=accMult*row.mult;
-      var bg = level===0?'' : level===1?'background:rgba(47,140,255,0.02)' : 'background:rgba(0,0,0,0.08)';
-      var fs = level===0?'':'font-size:'+(12-level*0.5)+'px';
-      var col = level===0?'':'color:var(--t3)';
-      html+='<tr style="'+bg+'"><td class="td-label" style="padding-left:'+indent+'px;'+fs+';'+col+'">'+(!isLast?'<span style="color:var(--t5);font-size:9px;margin-right:4px">▶</span>':'')+row.label+'</td>';
-      kpis.forEach(function(k){
-        var kpi=PD_KPIS[k]; var cy=kpi.cy*m, comp=kpi.ly*m;
-        if(level===0){ totals[k].cy+=cy; totals[k].comp+=comp; }
-        var d=ddDiff(cy,comp,kpi.fmt);
-        html+='<td class="td-cy" style="'+fs+'">'+ddFmt(cy,kpi.fmt)+'</td><td class="td-compare">'+ddFmt(comp,kpi.fmt)+'</td><td class="'+d.cls+'">'+d.txt+'</td>';
-      });
-      html+='</tr>';
-      if(!isLast) renderLevel(level+1, m, row.label);
-    });
-  }
-  if(dims.length>0) renderLevel(0, 1, '');
+  // RENDIMIENTO: solo nivel 0; los hijos se generan al hacer clic (dd-lazy-expand)
+  var data0 = dims.length>0 ? PD_DIM_DATA[dims[0]] : [];
+  (data0||[]).forEach(function(row, idx){
+    var isLast = dims.length<=1;
+    html+='<tr class="dd-row-dim" data-pdp="'+idx+'" data-exp="0" style="cursor:'+(isLast?'default':'pointer')+'"><td class="td-label" style="padding-left:12px">'+(!isLast?'<span class="dd-arrow" style="color:var(--t5);font-size:9px;margin-right:4px;display:inline-block;width:9px;text-align:center">\u25B6</span>':'')+row.label+'</td>';
+    kpis.forEach(function(k){ var kpi=PD_KPIS[k]; var cy=kpi.cy*row.mult, comp=kpi.ly*row.mult; totals[k].cy+=cy; totals[k].comp+=comp; var d=ddDiff(cy,comp,kpi.fmt); html+='<td class="td-cy">'+ddFmt(cy,kpi.fmt)+'</td><td class="td-compare">'+ddFmt(comp,kpi.fmt)+'</td><td class="'+d.cls+'">'+d.txt+'</td>'; });
+    html+='</tr>';
+  });
 
   html+='<tr class="dd-total"><td class="td-label">Total</td>';
   kpis.forEach(function(k){ var kpi=PD_KPIS[k]; var d=ddDiff(totals[k].cy,totals[k].comp,kpi.fmt); html+='<td class="td-cy">'+ddFmt(totals[k].cy,kpi.fmt)+'</td><td class="td-compare">'+ddFmt(totals[k].comp,kpi.fmt)+'</td><td class="'+d.cls+'">'+d.txt+'</td>'; });
@@ -7838,19 +7824,14 @@ function refreshKDtable(){
   thead.innerHTML=hr1+hr2;
   var html=''; var totals={}; kpis.forEach(function(k){ totals[k]={cy:0,comp:0}; });
   var dims=KD_active_dims.filter(function(d){return KD_DIM_DATA[d]&&KD_DIM_DATA[d].length});
-  function renderLevel(level, accMult){
-    var dim=dims[level], data=KD_DIM_DATA[dim], isLast=(level===dims.length-1), indent=12+level*18;
-    data.forEach(function(row){
-      var m=accMult*row.mult;
-      var bg=level===0?'':level===1?'background:rgba(47,140,255,0.02)':'background:rgba(0,0,0,0.08)';
-      var fs=level===0?'':'font-size:'+(12-level*0.5)+'px', col=level===0?'':'color:var(--t3)';
-      html+='<tr style="'+bg+'"><td class="td-label" style="padding-left:'+indent+'px;'+fs+';'+col+'">'+(!isLast?'<span style="color:var(--t5);font-size:9px;margin-right:4px">▶</span>':'')+row.label+'</td>';
-      kpis.forEach(function(k){ var kpi=KD_KPIS[k]; var cy=kpi.cy*m, comp=kpi.ly*m; if(level===0){totals[k].cy+=cy;totals[k].comp+=comp;} var d=ddDiff(cy,comp,kpi.fmt); html+='<td class="td-cy" style="'+fs+'">'+ddFmt(cy,kpi.fmt)+'</td><td class="td-compare">'+ddFmt(comp,kpi.fmt)+'</td><td class="'+d.cls+'">'+d.txt+'</td>'; });
-      html+='</tr>';
-      if(!isLast) renderLevel(level+1, m);
-    });
-  }
-  if(dims.length>0) renderLevel(0,1);
+  // RENDIMIENTO: solo nivel 0; los hijos se generan al hacer clic (dd-lazy-expand)
+  var data0 = dims.length>0 ? KD_DIM_DATA[dims[0]] : [];
+  (data0||[]).forEach(function(row, idx){
+    var isLast = dims.length<=1;
+    html+='<tr class="dd-row-dim" data-kdp="'+idx+'" data-exp="0" style="cursor:'+(isLast?'default':'pointer')+'"><td class="td-label" style="padding-left:12px">'+(!isLast?'<span class="dd-arrow" style="color:var(--t5);font-size:9px;margin-right:4px;display:inline-block;width:9px;text-align:center">\u25B6</span>':'')+row.label+'</td>';
+    kpis.forEach(function(k){ var kpi=KD_KPIS[k]; var cy=kpi.cy*row.mult, comp=kpi.ly*row.mult; totals[k].cy+=cy; totals[k].comp+=comp; var d=ddDiff(cy,comp,kpi.fmt); html+='<td class="td-cy">'+ddFmt(cy,kpi.fmt)+'</td><td class="td-compare">'+ddFmt(comp,kpi.fmt)+'</td><td class="'+d.cls+'">'+d.txt+'</td>'; });
+    html+='</tr>';
+  });
   html+='<tr class="dd-total"><td class="td-label">Total</td>';
   kpis.forEach(function(k){ var kpi=KD_KPIS[k]; var d=ddDiff(totals[k].cy,totals[k].comp,kpi.fmt); html+='<td class="td-cy">'+ddFmt(totals[k].cy,kpi.fmt)+'</td><td class="td-compare">'+ddFmt(totals[k].comp,kpi.fmt)+'</td><td class="'+d.cls+'">'+d.txt+'</td>'; });
   html+='</tr>';
@@ -12805,47 +12786,48 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
 })();
 </script>
 <script id="dd-lazy-expand">
-/* Deep Dive: expansión perezosa de filas hijas (unidades) al hacer clic, para que la
-   tabla cargue rápido en clientes grandes. Reusa la MISMA lógica de valores/formato. */
+/* Carga perezosa de filas hijas en los TRES Deep Dives (Sales=dd, Pace=pd, Pick Up=kd):
+   solo se pinta el nivel superior; al hacer clic en la flecha se generan las unidades.
+   Reusa la MISMA lógica de valores/formato (ddDiff/ddFmt). */
 (function(){
-  function buildChildRows(pIdx){
-    if(typeof getActiveDDkpis!=='function' || typeof DD_DIM_DATA==='undefined') return '';
-    var kpis=getActiveDDkpis(); if(!kpis||!kpis.length) return '';
-    var primaryDim=(DD_active_dims[0]||'year'), secondDim=(DD_active_dims[1]||null), thirdDim=(DD_active_dims[2]||null);
-    if(!secondDim || !DD_DIM_DATA[secondDim]) return '';
-    var primaryData=DD_DIM_DATA[primaryDim]||DD_DIM_DATA.year;
-    var row=primaryData[pIdx]; if(!row) return '';
-    var secondData=DD_DIM_DATA[secondDim]; var html='';
-    secondData.forEach(function(row2){
-      var hasChildren3 = thirdDim && DD_DIM_DATA[thirdDim];
-      html += '<tr class="dd-child" style="background:rgba(47,140,255,0.02)">';
-      html += '<td class="td-label" style="padding-left:20px;font-size:11.5px;color:var(--t3)">'+(hasChildren3?'<span style="color:var(--t5);font-size:9px;margin-right:4px">▶</span>':'')+row2.label+'</td>';
-      kpis.forEach(function(k){ var kpi=DD_KPIS[k]; var cy=kpi.cy*row.mult*row2.mult, comp=kpi.ly*row.mult*row2.mult; var diff=ddDiff(cy,comp,kpi.fmt);
-        html += '<td class="td-cy" style="font-size:11.5px">'+ddFmt(cy,kpi.fmt)+'</td><td class="td-compare">'+ddFmt(comp,kpi.fmt)+'</td><td class="'+diff.cls+'">'+diff.txt+'</td>'; });
-      html += '</tr>';
-      if(thirdDim && DD_DIM_DATA[thirdDim]){
-        DD_DIM_DATA[thirdDim].forEach(function(row3){
-          html += '<tr class="dd-child" style="background:rgba(0,0,0,0.08)">';
-          html += '<td class="td-label" style="padding-left:36px;font-size:11px;color:var(--t4)">'+row3.label+'</td>';
-          kpis.forEach(function(k){ var kpi=DD_KPIS[k]; var cy=kpi.cy*row.mult*row2.mult*row3.mult, comp=kpi.ly*row.mult*row2.mult*row3.mult; var diff=ddDiff(cy,comp,kpi.fmt);
-            html += '<td class="td-cy" style="font-size:11px;color:var(--t3)">'+ddFmt(cy,kpi.fmt)+'</td><td class="td-compare" style="font-size:10.5px">'+ddFmt(comp,kpi.fmt)+'</td><td class="'+diff.cls+'" style="font-size:10.5px">'+diff.txt+'</td>'; });
-          html += '</tr>';
-        });
-      }
+  function cfg(id){
+    if(id==='dd-tbody' && window.DD_KPIS) return {K:window.DD_KPIS, D:window.DD_DIM_DATA, dims:window.DD_active_dims, kpis:window.getActiveDDkpis(), a:'data-ddp'};
+    if(id==='pd-tbody' && window.PD_KPIS) return {K:window.PD_KPIS, D:window.PD_DIM_DATA, dims:window.PD_active_dims, kpis:window.getActivePDkpis().filter(function(k){return !(window.PD_hidden&&PD_hidden[k]);}), a:'data-pdp'};
+    if(id==='kd-tbody' && window.KD_KPIS) return {K:window.KD_KPIS, D:window.KD_DIM_DATA, dims:window.KD_active_dims, kpis:window.getActiveKDkpis().filter(function(k){return !(window.KD_hidden&&KD_hidden[k]);}), a:'data-kdp'};
+    return null;
+  }
+  function subtree(C, level, accMult){
+    var dim=C.dims[level], data=C.D[dim]; if(!data) return '';
+    var isLast=(level===C.dims.length-1), indent=12+level*18, html='';
+    data.forEach(function(row){
+      var m=accMult*row.mult;
+      var bg=(level===1)?'background:rgba(47,140,255,0.02)':'background:rgba(0,0,0,0.08)';
+      var fs='font-size:'+(12-level*0.5)+'px';
+      html+='<tr class="dd-child" style="'+bg+'"><td class="td-label" style="padding-left:'+indent+'px;'+fs+';color:var(--t3)">'+(!isLast?'<span style="color:var(--t5);font-size:9px;margin-right:4px">▶</span>':'')+row.label+'</td>';
+      C.kpis.forEach(function(k){ var kpi=C.K[k]; var cy=kpi.cy*m, comp=kpi.ly*m; var d=ddDiff(cy,comp,kpi.fmt); html+='<td class="td-cy" style="'+fs+'">'+ddFmt(cy,kpi.fmt)+'</td><td class="td-compare">'+ddFmt(comp,kpi.fmt)+'</td><td class="'+d.cls+'">'+d.txt+'</td>'; });
+      html+='</tr>';
+      if(!isLast) html+=subtree(C, level+1, m);
     });
     return html;
   }
+  function buildChildren(id, pIdx){
+    var C=cfg(id); if(!C||!C.kpis||!C.kpis.length||!C.dims||C.dims.length<2) return '';
+    var data0=C.D[C.dims[0]]; if(!data0) return '';
+    var row0=data0[pIdx]; if(!row0) return '';
+    return subtree(C, 1, row0.mult);
+  }
   document.addEventListener('click', function(e){
-    var tr = e.target && e.target.closest ? e.target.closest('tr.dd-row-dim') : null;
-    if(!tr || !tr.hasAttribute('data-ddp')) return;
-    var tbody=document.getElementById('dd-tbody'); if(!tbody || !tbody.contains(tr)) return;
-    var arrow=tr.querySelector('.dd-arrow'); if(!arrow) return;   // sin hijos -> nada
+    var tr=e.target&&e.target.closest?e.target.closest('tr.dd-row-dim'):null; if(!tr) return;
+    var a = tr.hasAttribute('data-ddp')?'data-ddp':tr.hasAttribute('data-pdp')?'data-pdp':tr.hasAttribute('data-kdp')?'data-kdp':null;
+    if(!a) return;
+    var tb=tr.closest('tbody'); if(!tb||!tb.id) return;
+    var arrow=tr.querySelector('.dd-arrow'); if(!arrow) return;
     if(tr.getAttribute('data-exp')==='1'){
       var n=tr.nextElementSibling;
-      while(n && n.classList && n.classList.contains('dd-child')){ var nx=n.nextElementSibling; n.parentNode.removeChild(n); n=nx; }
+      while(n&&n.classList&&n.classList.contains('dd-child')){ var nx=n.nextElementSibling; n.parentNode.removeChild(n); n=nx; }
       tr.setAttribute('data-exp','0'); arrow.textContent='▶';
     } else {
-      var h=buildChildRows(tr.getAttribute('data-ddp'));
+      var h=buildChildren(tb.id, tr.getAttribute(a));
       if(h) tr.insertAdjacentHTML('afterend', h);
       tr.setAttribute('data-exp','1'); arrow.textContent='▼';
     }
