@@ -1,9 +1,16 @@
 // events-tm.js — Eventos reales por ciudad desde Ticketmaster Discovery API (gratis con API key).
-// Requiere env TICKETMASTER_KEY. Si no esta, devuelve [] (se conserva el evento del BI).
-// Cachea por ciudad dentro de la misma ejecucion. Si la busqueda por ciudad no devuelve nada,
-// intenta una busqueda por palabra clave (mejora cobertura en ciudades secundarias).
+// Requiere env TICKETMASTER_KEY. Si no está, devuelve [] (se conserva el evento del BI).
+// Caché en DOS niveles: (1) memoria dentro de la ejecución; (2) DISCO persistente entre
+// ejecuciones (public/data/_cache_events.json), con TTL configurable (EVENTS_TTL_DAYS, def. 3 días).
+// Así, día tras día, solo se piden a la API las ciudades cuya caché ha caducado.
+const dc = require('./diskcache.js');
 const KEY = process.env.TICKETMASTER_KEY || '';
-const cache = {};
+const TTL = dc.days(process.env.EVENTS_TTL_DAYS || 3);
+const CACHE_FILE = '_cache_events.json';
+
+const mem = {};                 // cityKey -> [eventos]
+const disk = dc.load(CACHE_FILE);   // cityKey -> {at, data}
+let dirty = false;
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 async function runQuery(extra) {
@@ -42,24 +49,32 @@ async function runQuery(extra) {
   return out;
 }
 
+// fetchCity expone fetchCity._net = true cuando esta llamada SÍ pegó a la red (para espaciar solo entonces).
 async function fetchCity(city) {
+  fetchCity._net = false;
   const k = String(city || '').trim().toLowerCase();
   if (!k) return [];
-  if (cache[k]) return cache[k];
-  if (!KEY) { cache[k] = []; return []; }
+  if (mem[k]) return mem[k];                                  // (1) memoria
+  if (dc.fresh(disk[k], TTL)) { mem[k] = disk[k].data || []; return mem[k]; }  // (2) disco fresco
+  if (!KEY) { mem[k] = []; return []; }
+  fetchCity._net = true;
   // 1) por ciudad
   let out = await runQuery({ city: city });
-  // 2) si vacio, por palabra clave (mas permisivo) y filtra a la misma ciudad si hay venue
+  // 2) si vacío, por palabra clave (más permisivo) y filtra a la misma ciudad si hay venue
   if (!out.length) {
     await sleep(250);
     const kw = await runQuery({ keyword: city });
     out = kw.filter(function (e) { return !e.city || e.city.toLowerCase().indexOf(k) >= 0 || k.indexOf(e.city.toLowerCase()) >= 0; });
-    if (!out.length) out = kw;   // si nada coincide exacto, deja lo que haya
+    if (!out.length) out = kw;
   }
   out.forEach(function (e) { if (!e.city) e.city = city; });
-  cache[k] = out;
+  mem[k] = out;
+  disk[k] = { at: new Date().toISOString(), data: out };     // persiste para próximas ejecuciones
+  dirty = true;
   return out;
 }
+
+function flush() { if (dirty) { dc.save(CACHE_FILE, disk); dirty = false; } }
 
 async function eventsForCities(cities, maxCities) {
   const uniq = []; const seen = {};
@@ -69,11 +84,16 @@ async function eventsForCities(cities, maxCities) {
   });
   const list = (maxCities && uniq.length > maxCities) ? uniq.slice(0, maxCities) : uniq;
   let all = [];
-  for (const c of list) { const ev = await fetchCity(c); all = all.concat(ev); await sleep(250); }
+  for (const c of list) {
+    const ev = await fetchCity(c);
+    all = all.concat(ev);
+    if (fetchCity._net) await sleep(250);   // solo espaciamos cuando hubo llamada real
+  }
+  flush();                                  // guarda la caché de disco al terminar
   const seen2 = {}; const merged = [];
   all.forEach(function (e) { const key = e.d + '|' + e.name; if (!seen2[key]) { seen2[key] = 1; merged.push(e); } });
   merged.sort(function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : 0; });
   return merged;
 }
 
-module.exports = { fetchCity, eventsForCities };
+module.exports = { fetchCity, eventsForCities, flush };
