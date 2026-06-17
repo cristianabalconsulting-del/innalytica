@@ -1660,6 +1660,7 @@ body { -webkit-font-smoothing: antialiased; }
       <div id="comparable-banner" style="display:none;margin-top:6px;font-size:10.5px;color:#C9A84C;padding:6px 8px;background:rgba(201,168,76,0.08);border-radius:5px;border:0.5px solid rgba(201,168,76,0.25);line-height:1.5">
         Excluyendo <strong>Apto 2-AB</strong> (alta Jul 2025) y <strong>Apto 3D</strong> (baja Mar 2026)
       </div>
+      <div id="period-filter-box">
       <div class="f-label" style="margin-top:10px">Periodo actual</div>
       <div style="display:flex;gap:6px">
         <select class="f-select" id="period-year" style="flex:1" onchange="setPeriodFilter(event)">
@@ -1693,6 +1694,7 @@ body { -webkit-font-smoothing: antialiased; }
           <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
           <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
         </select>
+      </div>
       </div>
     </div>
     <div class="sidebar-filters">
@@ -12347,7 +12349,7 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
 })();
 
 </script>
-<script>console.log("%cINNALYTICA BUILD = B8-pickupfix","color:#5af3ff;font-weight:bold");window.__BUILD="B20-pace-ly2-yrs";</script>
+<script>console.log("%cINNALYTICA BUILD = B8-pickupfix","color:#5af3ff;font-weight:bold");window.__BUILD="B21-period-fase1";</script>
 
 <script id="global-propunit-filter">
 /* Filtro GLOBAL por propiedad/unidad (conjunto de unidades). Deriva un dataset filtrado
@@ -12907,6 +12909,19 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
   }
   if(document.readyState!=='loading') setTimeout(tick,400); else document.addEventListener('DOMContentLoaded',function(){setTimeout(tick,400);});
   setInterval(tick, 1200);
+})();
+</script>
+<script id="period-box-visibility">
+/* Oculta el filtro de Periodo actual / Comparar con en las páginas Pace y Eventos. */
+(function(){
+  function tick(){
+    var box=document.getElementById('period-filter-box'); if(!box) return;
+    var pace=document.getElementById('page-pace'), ev=document.getElementById('page-events');
+    var onPace=pace&&pace.offsetParent!==null, onEv=ev&&ev.offsetParent!==null;
+    box.style.display=(onPace||onEv)?'none':'';
+  }
+  if(document.readyState!=='loading') setTimeout(tick,200); else document.addEventListener('DOMContentLoaded',function(){setTimeout(tick,200);});
+  setInterval(tick, 500);
 })();
 </script>
 </body>
