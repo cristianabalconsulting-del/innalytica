@@ -19,6 +19,7 @@ concurrency:
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -40,8 +41,10 @@ jobs:
           PBI_DATASET_ID:      ${{ secrets.PBI_DATASET_ID }}
           TICKETMASTER_KEY:    ${{ secrets.TICKETMASTER_KEY }}
           CALENDARIFIC_KEY:    ${{ secrets.CALENDARIFIC_KEY }}
+          EVENTS_TTL_DAYS:     '3'
+          HOLIDAYS_TTL_DAYS:   '21'
           QUERY_SPACING_MS:    '800'
-          QUERY_TIMEOUT_MS:    '60000'
+          QUERY_TIMEOUT_MS:    '180000'
           GROUP:               'fast'
         run: node scripts/generate.js
       - name: Commit
