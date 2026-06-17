@@ -7058,7 +7058,7 @@ function refreshDDtable() {
     // RENDIMIENTO: solo se pinta la fila padre (grupo/dim). Las filas hijas (unidades)
     // se generan al hacer clic en la flecha (carga perezosa) -> tabla rápida en clientes grandes.
     var hasChildren = secondDim && DD_DIM_DATA[secondDim];
-    html += '<tr class="dd-row-dim" data-ddp="'+pIdx+'" data-exp="0" style="cursor:'+(hasChildren?'pointer':'default')+'">';
+    html += '<tr class="dd-row-dim" data-lvl="0" data-acc="'+row.mult+'" data-exp="0" style="cursor:'+(hasChildren?'pointer':'default')+'">';
     html += '<td class="td-label" style="font-weight:400">'+(hasChildren?'<span class="dd-arrow" style="color:var(--t5);font-size:10px;margin-right:4px;display:inline-block;width:9px;text-align:center">\u25B6</span>':'')+row.label+'</td>';
     kpis.forEach(function(k) {
       var kpi = DD_KPIS[k];
@@ -7683,7 +7683,7 @@ function refreshPDtable(){
   var data0 = dims.length>0 ? PD_DIM_DATA[dims[0]] : [];
   (data0||[]).forEach(function(row, idx){
     var isLast = dims.length<=1;
-    html+='<tr class="dd-row-dim" data-pdp="'+idx+'" data-exp="0" style="cursor:'+(isLast?'default':'pointer')+'"><td class="td-label" style="padding-left:12px">'+(!isLast?'<span class="dd-arrow" style="color:var(--t5);font-size:9px;margin-right:4px;display:inline-block;width:9px;text-align:center">\u25B6</span>':'')+row.label+'</td>';
+    html+='<tr class="dd-row-dim" data-lvl="0" data-acc="'+row.mult+'" data-exp="0" style="cursor:'+(isLast?'default':'pointer')+'"><td class="td-label" style="padding-left:12px">'+(!isLast?'<span class="dd-arrow" style="color:var(--t5);font-size:9px;margin-right:4px;display:inline-block;width:9px;text-align:center">\u25B6</span>':'')+row.label+'</td>';
     kpis.forEach(function(k){ var kpi=PD_KPIS[k]; var cy=kpi.cy*row.mult, comp=kpi.ly*row.mult; totals[k].cy+=cy; totals[k].comp+=comp; var d=ddDiff(cy,comp,kpi.fmt); html+='<td class="td-cy">'+ddFmt(cy,kpi.fmt)+'</td><td class="td-compare">'+ddFmt(comp,kpi.fmt)+'</td><td class="'+d.cls+'">'+d.txt+'</td>'; });
     html+='</tr>';
   });
@@ -7828,7 +7828,7 @@ function refreshKDtable(){
   var data0 = dims.length>0 ? KD_DIM_DATA[dims[0]] : [];
   (data0||[]).forEach(function(row, idx){
     var isLast = dims.length<=1;
-    html+='<tr class="dd-row-dim" data-kdp="'+idx+'" data-exp="0" style="cursor:'+(isLast?'default':'pointer')+'"><td class="td-label" style="padding-left:12px">'+(!isLast?'<span class="dd-arrow" style="color:var(--t5);font-size:9px;margin-right:4px;display:inline-block;width:9px;text-align:center">\u25B6</span>':'')+row.label+'</td>';
+    html+='<tr class="dd-row-dim" data-lvl="0" data-acc="'+row.mult+'" data-exp="0" style="cursor:'+(isLast?'default':'pointer')+'"><td class="td-label" style="padding-left:12px">'+(!isLast?'<span class="dd-arrow" style="color:var(--t5);font-size:9px;margin-right:4px;display:inline-block;width:9px;text-align:center">\u25B6</span>':'')+row.label+'</td>';
     kpis.forEach(function(k){ var kpi=KD_KPIS[k]; var cy=kpi.cy*row.mult, comp=kpi.ly*row.mult; totals[k].cy+=cy; totals[k].comp+=comp; var d=ddDiff(cy,comp,kpi.fmt); html+='<td class="td-cy">'+ddFmt(cy,kpi.fmt)+'</td><td class="td-compare">'+ddFmt(comp,kpi.fmt)+'</td><td class="'+d.cls+'">'+d.txt+'</td>'; });
     html+='</tr>';
   });
@@ -12786,48 +12786,44 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
 })();
 </script>
 <script id="dd-lazy-expand">
-/* Carga perezosa de filas hijas en los TRES Deep Dives (Sales=dd, Pace=pd, Pick Up=kd):
-   solo se pinta el nivel superior; al hacer clic en la flecha se generan las unidades.
-   Reusa la MISMA lógica de valores/formato (ddDiff/ddFmt). */
+/* Expansión PEREZOSA y JERÁRQUICA (nivel por nivel) para los TRES Deep Dives:
+   Sales (dd), Pace (pd), Pick Up (kd). Cada fila con hijos tiene su propia flecha;
+   al hacer clic genera SOLO el nivel inmediato siguiente (no todo el subárbol),
+   así nunca se pintan todas las unidades de golpe -> tabla rápida. */
 (function(){
   function cfg(id){
-    if(id==='dd-tbody' && window.DD_KPIS) return {K:window.DD_KPIS, D:window.DD_DIM_DATA, dims:window.DD_active_dims, kpis:window.getActiveDDkpis(), a:'data-ddp'};
-    if(id==='pd-tbody' && window.PD_KPIS) return {K:window.PD_KPIS, D:window.PD_DIM_DATA, dims:window.PD_active_dims, kpis:window.getActivePDkpis().filter(function(k){return !(window.PD_hidden&&PD_hidden[k]);}), a:'data-pdp'};
-    if(id==='kd-tbody' && window.KD_KPIS) return {K:window.KD_KPIS, D:window.KD_DIM_DATA, dims:window.KD_active_dims, kpis:window.getActiveKDkpis().filter(function(k){return !(window.KD_hidden&&KD_hidden[k]);}), a:'data-kdp'};
+    if(id==='dd-tbody' && window.DD_KPIS) return {K:DD_KPIS, D:DD_DIM_DATA, dims:DD_active_dims, kpis:getActiveDDkpis()};
+    if(id==='pd-tbody' && window.PD_KPIS) return {K:PD_KPIS, D:PD_DIM_DATA, dims:PD_active_dims, kpis:getActivePDkpis().filter(function(k){return !(window.PD_hidden&&PD_hidden[k]);})};
+    if(id==='kd-tbody' && window.KD_KPIS) return {K:KD_KPIS, D:KD_DIM_DATA, dims:KD_active_dims, kpis:getActiveKDkpis().filter(function(k){return !(window.KD_hidden&&KD_hidden[k]);})};
     return null;
   }
-  function subtree(C, level, accMult){
-    var dim=C.dims[level], data=C.D[dim]; if(!data) return '';
-    var isLast=(level===C.dims.length-1), indent=12+level*18, html='';
+  // Genera SOLO las filas del nivel `lvl` (hijos directos), con su flecha si aún hay niveles debajo.
+  function buildLevel(id, lvl, accMult){
+    var C=cfg(id); if(!C||!C.kpis||!C.kpis.length||!C.dims||lvl>=C.dims.length) return '';
+    var data=C.D[C.dims[lvl]]; if(!data) return '';
+    var isLast=(lvl===C.dims.length-1), indent=12+lvl*18;
+    var bg=(lvl===1)?'background:rgba(47,140,255,0.02)':'background:rgba(0,0,0,0.08)';
+    var fs='font-size:'+Math.max(10,(12-lvl*0.5))+'px', html='';
     data.forEach(function(row){
       var m=accMult*row.mult;
-      var bg=(level===1)?'background:rgba(47,140,255,0.02)':'background:rgba(0,0,0,0.08)';
-      var fs='font-size:'+(12-level*0.5)+'px';
-      html+='<tr class="dd-child" style="'+bg+'"><td class="td-label" style="padding-left:'+indent+'px;'+fs+';color:var(--t3)">'+(!isLast?'<span style="color:var(--t5);font-size:9px;margin-right:4px">▶</span>':'')+row.label+'</td>';
+      html+='<tr class="dd-child'+(isLast?'':' dd-exp')+'" data-lvl="'+lvl+'" data-acc="'+m+'"'+(isLast?'':' data-exp="0"')+' style="'+bg+';cursor:'+(isLast?'default':'pointer')+'"><td class="td-label" style="padding-left:'+indent+'px;'+fs+';color:var(--t3)">'+(!isLast?'<span class="dd-arrow" style="color:var(--t5);font-size:9px;margin-right:4px;display:inline-block;width:9px;text-align:center">▶</span>':'')+row.label+'</td>';
       C.kpis.forEach(function(k){ var kpi=C.K[k]; var cy=kpi.cy*m, comp=kpi.ly*m; var d=ddDiff(cy,comp,kpi.fmt); html+='<td class="td-cy" style="'+fs+'">'+ddFmt(cy,kpi.fmt)+'</td><td class="td-compare">'+ddFmt(comp,kpi.fmt)+'</td><td class="'+d.cls+'">'+d.txt+'</td>'; });
       html+='</tr>';
-      if(!isLast) html+=subtree(C, level+1, m);
     });
     return html;
   }
-  function buildChildren(id, pIdx){
-    var C=cfg(id); if(!C||!C.kpis||!C.kpis.length||!C.dims||C.dims.length<2) return '';
-    var data0=C.D[C.dims[0]]; if(!data0) return '';
-    var row0=data0[pIdx]; if(!row0) return '';
-    return subtree(C, 1, row0.mult);
-  }
   document.addEventListener('click', function(e){
-    var tr=e.target&&e.target.closest?e.target.closest('tr.dd-row-dim'):null; if(!tr) return;
-    var a = tr.hasAttribute('data-ddp')?'data-ddp':tr.hasAttribute('data-pdp')?'data-pdp':tr.hasAttribute('data-kdp')?'data-kdp':null;
-    if(!a) return;
-    var tb=tr.closest('tbody'); if(!tb||!tb.id) return;
+    var tr=e.target&&e.target.closest?e.target.closest('tr.dd-row-dim, tr.dd-exp'):null; if(!tr) return;
+    var tb=tr.closest('tbody'); if(!tb||!tb.id||!cfg(tb.id)) return;
     var arrow=tr.querySelector('.dd-arrow'); if(!arrow) return;
+    var lvl=parseInt(tr.getAttribute('data-lvl')||'0',10);
+    var acc=parseFloat(tr.getAttribute('data-acc')||'1'); if(isNaN(acc)) acc=1;
     if(tr.getAttribute('data-exp')==='1'){
       var n=tr.nextElementSibling;
-      while(n&&n.classList&&n.classList.contains('dd-child')){ var nx=n.nextElementSibling; n.parentNode.removeChild(n); n=nx; }
+      while(n && n.getAttribute && parseInt(n.getAttribute('data-lvl')||'-1',10)>lvl){ var nx=n.nextElementSibling; n.parentNode.removeChild(n); n=nx; }
       tr.setAttribute('data-exp','0'); arrow.textContent='▶';
     } else {
-      var h=buildChildren(tb.id, tr.getAttribute(a));
+      var h=buildLevel(tb.id, lvl+1, acc);
       if(h) tr.insertAdjacentHTML('afterend', h);
       tr.setAttribute('data-exp','1'); arrow.textContent='▼';
     }
