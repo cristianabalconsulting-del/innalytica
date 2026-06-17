@@ -18,7 +18,7 @@ const BUDGET_MS     = parseInt(process.env.PBI_BUDGET_MS) || 7500;  // cabe en e
 const ESSENTIAL     = {kpi:1,ytdToday:1,mesActual:1,dp26:1,dp25:1,capDim:1,unitsCount:1,dpChan26:1,dpChan25:1,pace26:1,pace25:1,paceLead:1}; // se piden primero
 // Consultas OPCIONALES: si fallan (p.ej. 'Meteo VCR' no publicada en el dataset, o detalle pesado),
 // NO bloquean el guardado del JSON. Así el clima/forecast pueden faltar sin tumbar todo el fichero.
-const OPTIONAL      = {meteoFc:1, fcOtbD:1, forecastPk:1, fcPkDay:1, paceMLY2:1, paceDimLY2:1};
+const OPTIONAL      = {meteoFc:1, fcOtbD:1, forecastPk:1, fcPkDay:1, paceMLY2:1, paceDimLY2:1, monthlyAll:1};
 let   TOKEN_CACHE   = { token: null, exp: 0 };
 let   TOKEN_PROMISE = null;     // dedup de peticiones de token concurrentes
 const RESP_CACHE    = new Map(); // key `${aloj}|${year}` -> { exp, promise }
@@ -214,6 +214,8 @@ function buildQueries(year, aloj) {
   const _yChk = (y) => `'Informe Reservas Total'[CHECK IN]>=DATE(${y},1,1)&&'Informe Reservas Total'[CHECK IN]<DATE(${y+1},1,1)`;
   const F26 = `'Informe Reservas Total'[Alojamiento] IN ${alojIN}&&'Informe Reservas Total'[Status]="CONFIRMED"&&${_yEst(year)}&&'Informe Reservas Total'[Conexion]="OK"`;
   const F25 = `'Informe Reservas Total'[Alojamiento] IN ${alojIN}&&'Informe Reservas Total'[Status]="CONFIRMED"&&${_yEst(prevYear)}&&'Informe Reservas Total'[Conexion]="OK"`;
+  const M_FROM = parseInt(process.env.MONTHLY_FROM)||2024, M_TO = parseInt(process.env.MONTHLY_TO)||2027;
+  const Fall = `'Informe Reservas Total'[Alojamiento] IN ${alojIN}&&'Informe Reservas Total'[Status]="CONFIRMED"&&'Informe Reservas Total'[Conexion]="OK"&&'Informe Reservas Total'[Fecha Estancia]>=DATE(${M_FROM},1,1)&&'Informe Reservas Total'[Fecha Estancia]<DATE(${M_TO+1},1,1)`;
   const Fc26 = F26.replace('"CONFIRMED"', '"CANCELLED"');
   const Fc25 = F25.replace('"CONFIRMED"', '"CANCELLED"');
 
@@ -408,6 +410,7 @@ ytdToday: `EVALUATE ROW("Rev",CALCULATE(SUM('Informe Reservas Total'[ADR ING])+S
 
 
     salesDimLY: `EVALUATE CALCULATETABLE(SUMMARIZECOLUMNS('Fechas estancia'[Year],'Fechas estancia'[Month],Habitaciones[Property],Habitaciones[Tipo Habitación],Habitaciones[Location],'Informe Reservas Total'[Source Filtro],'Informe Reservas Total'[Rate plan],'Informe Reservas Total'[Country],"RN",COUNTROWS('Informe Reservas Total'),"BK",DISTINCTCOUNT('Informe Reservas Total'[Refer]),"Ni",SUM('Informe Reservas Total'[Nights]),"Pax",SUM('Informe Reservas Total'[GUESTS]),"RevR",SUM('Informe Reservas Total'[ADR ING]),"Clean",SUM('Informe Reservas Total'[Cleaning Diario]),"Extra",SUM('Informe Reservas Total'[Extras Diario]),"ComR",SUM('Informe Reservas Total'[room_commission_price]),"ComC",SUM('Informe Reservas Total'[cf_commission_price]),"BWsum",SUMX('Informe Reservas Total',(INT('Informe Reservas Total'[Fecha Estancia])-INT('Informe Reservas Total'[Create time])))),FILTER(Habitaciones,Habitaciones[Activo_Condicional]="Activo"),FILTER('Informe Reservas Total',${F25}))`,
+    monthlyAll: `EVALUATE CALCULATETABLE(SUMMARIZECOLUMNS('Fechas estancia'[Year],'Fechas estancia'[Month],Habitaciones[Property],Habitaciones[Tipo Habitación],Habitaciones[Location],'Informe Reservas Total'[Source Filtro],'Informe Reservas Total'[Rate plan],'Informe Reservas Total'[Country],"RN",COUNTROWS('Informe Reservas Total'),"BK",DISTINCTCOUNT('Informe Reservas Total'[Refer]),"Ni",SUM('Informe Reservas Total'[Nights]),"Pax",SUM('Informe Reservas Total'[GUESTS]),"RevR",SUM('Informe Reservas Total'[ADR ING]),"Clean",SUM('Informe Reservas Total'[Cleaning Diario]),"Extra",SUM('Informe Reservas Total'[Extras Diario]),"ComR",SUM('Informe Reservas Total'[room_commission_price]),"ComC",SUM('Informe Reservas Total'[cf_commission_price]),"BWsum",SUMX('Informe Reservas Total',(INT('Informe Reservas Total'[Fecha Estancia])-INT('Informe Reservas Total'[Create time])))),FILTER(Habitaciones,Habitaciones[Activo_Condicional]="Activo"),FILTER('Informe Reservas Total',${Fall}))`,
 
 
     salesCanc: `EVALUATE CALCULATETABLE(SUMMARIZECOLUMNS('Fechas estancia'[Year],'Fechas estancia'[Month],Habitaciones[Property],Habitaciones[Tipo Habitación],Habitaciones[Location],'Informe Reservas Total'[Source Filtro],'Informe Reservas Total'[Rate plan],'Informe Reservas Total'[Country],"cRN",COUNTROWS('Informe Reservas Total'),"cBK",DISTINCTCOUNT('Informe Reservas Total'[Refer]),"cRev",SUM('Informe Reservas Total'[ADR ING])+SUM('Informe Reservas Total'[Cleaning Diario])+SUM('Informe Reservas Total'[Extras Diario]),"cCom",SUM('Informe Reservas Total'[room_commission_price])+SUM('Informe Reservas Total'[cf_commission_price])),FILTER(Habitaciones,Habitaciones[Activo_Condicional]="Activo"),FILTER('Informe Reservas Total','Informe Reservas Total'[Alojamiento] IN ${alojIN}&&'Informe Reservas Total'[Status]="CANCELLED"&&${_yEst(year)}))`,
@@ -416,7 +419,7 @@ ytdToday: `EVALUATE ROW("Rev",CALCULATE(SUM('Informe Reservas Total'[ADR ING])+S
     salesCancLY: `EVALUATE CALCULATETABLE(SUMMARIZECOLUMNS('Fechas estancia'[Year],'Fechas estancia'[Month],Habitaciones[Property],Habitaciones[Tipo Habitación],Habitaciones[Location],'Informe Reservas Total'[Source Filtro],'Informe Reservas Total'[Rate plan],'Informe Reservas Total'[Country],"cRN",COUNTROWS('Informe Reservas Total'),"cBK",DISTINCTCOUNT('Informe Reservas Total'[Refer]),"cRev",SUM('Informe Reservas Total'[ADR ING])+SUM('Informe Reservas Total'[Cleaning Diario])+SUM('Informe Reservas Total'[Extras Diario]),"cCom",SUM('Informe Reservas Total'[room_commission_price])+SUM('Informe Reservas Total'[cf_commission_price])),FILTER(Habitaciones,Habitaciones[Activo_Condicional]="Activo"),FILTER('Informe Reservas Total','Informe Reservas Total'[Alojamiento] IN ${alojIN}&&'Informe Reservas Total'[Status]="CANCELLED"&&${_yEst(prevYear)}))`,
 
 
-    capDim: `EVALUATE CALCULATETABLE(SUMMARIZECOLUMNS('Habitaciones Diarias'[Property],'Habitaciones Diarias'[Tipo Habitación],'Fechas estancia'[Year],'Fechas estancia'[Month],"cap",SUM('Habitaciones Diarias'[Total Room]),"blk",SUM('Habitaciones Diarias'[Bloqueo])),FILTER('Habitaciones Diarias','Habitaciones Diarias'[Alojamiento] IN ${alojIN}),FILTER('Fechas estancia','Fechas estancia'[Year]>=2025))`,
+    capDim: `EVALUATE CALCULATETABLE(SUMMARIZECOLUMNS('Habitaciones Diarias'[Property],'Habitaciones Diarias'[Tipo Habitación],'Fechas estancia'[Year],'Fechas estancia'[Month],"cap",SUM('Habitaciones Diarias'[Total Room]),"blk",SUM('Habitaciones Diarias'[Bloqueo])),FILTER('Habitaciones Diarias','Habitaciones Diarias'[Alojamiento] IN ${alojIN}),FILTER('Fechas estancia','Fechas estancia'[Year]>=2024))`,
 
 
     unitsCount: `EVALUATE CALCULATETABLE(SUMMARIZECOLUMNS(Habitaciones[Property],Habitaciones[Tipo Habitación],"u",DISTINCTCOUNT(Habitaciones[Nº Habitación])),FILTER(Habitaciones,Habitaciones[Activo_Condicional]="Activo"&&Habitaciones[Alojamiento] IN ${alojIN}))`,
@@ -861,6 +864,7 @@ function processData(raw, year) {
   }
   var salesDay=mapSalesDay(raw.salesDay);
   var salesDim=mapSalesDim(raw.salesDim), salesDimLY=mapSalesDim(raw.salesDimLY);
+  var monthlyAll=mapSalesDim(raw.monthlyAll);
   var salesCanc=mapSalesCanc(raw.salesCanc), salesCancLY=mapSalesCanc(raw.salesCancLY);
   var _cd=raw.capDim||[]; var _cdk=_cd[0]?Object.keys(_cd[0]):[];
   var _cpk=_cdk.find(function(x){return x.indexOf('Property')>=0;}), _ctk=_cdk.find(function(x){return x.indexOf('Tipo Habit')>=0;}),
@@ -881,7 +885,7 @@ function processData(raw, year) {
   return {
     updatedAt: new Date().toISOString(),
     year,
-    salesDim, salesDimLY, salesCanc, salesCancLY, capDim: capDimArr,
+    salesDim, salesDimLY, monthlyAll, salesCanc, salesCancLY, capDim: capDimArr,
     salesDay,
     ytdToday, losDist,
     units: { byGroup: unitsByGroup, byType: unitsByType, total: totalUnits },
