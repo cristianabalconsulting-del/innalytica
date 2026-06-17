@@ -12349,7 +12349,7 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
 })();
 
 </script>
-<script>console.log("%cINNALYTICA BUILD = B8-pickupfix","color:#5af3ff;font-weight:bold");window.__BUILD="B21-period-fase1";</script>
+<script>console.log("%cINNALYTICA BUILD = B8-pickupfix","color:#5af3ff;font-weight:bold");window.__BUILD="B22-period-fase2";</script>
 
 <script id="global-propunit-filter">
 /* Filtro GLOBAL por propiedad/unidad (conjunto de unidades). Deriva un dataset filtrado
@@ -12924,5 +12924,65 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
   setInterval(tick, 500);
 })();
 </script>
+<script id="period-filter-engine">
+/* Filtro de PERIODO global: recalcula CY (periodo actual) y LY (comparar con) desde
+   monthlyAll (multi-año) y re-renderiza el dashboard. No aplica a Pace ni Eventos. */
+(function(){
+  function num(x){return (typeof x==='number'&&!isNaN(x))?x:0;}
+  function monthOk(mv,mo){ if(mv==='all'||mv==null)return true; if(mv==='ytd'){return mo<=new Date().getMonth();} return mo===(parseInt(mv,10)-1); }
+  function aggDP(rows){ var t={rn:0,bk:0,ni:0,revT:0,revR:0,cm:0,cancBK:0,disp:0,oor:0};
+    (rows||[]).forEach(function(r){t.rn+=num(r.rn);t.bk+=num(r.bk);t.ni+=num(r.ni);t.revT+=num(r.revT);t.revR+=num(r.revR);t.cm+=num(r.cm);t.cancBK+=num(r.cancBK);t.disp+=num(r.disp);t.oor+=num(r.oor);});
+    var d=t.disp||1; t.occ=+(t.rn/d*100).toFixed(2);t.nocc=+(t.rn*0.95/d*100).toFixed(2);
+    t.adrT=t.rn>0?+(t.revT/t.rn).toFixed(1):0;t.adrR=t.rn>0?+(t.revR/t.rn).toFixed(1):0;
+    t.nadrT=t.rn>0?+((t.revT-t.cm)/t.rn).toFixed(1):0;t.nadrR=t.rn>0?+((t.revR-t.cm)/t.rn).toFixed(1):0;
+    t.los=t.rn>0?+(t.ni/t.rn).toFixed(1):0;t.nRevT=t.revT-t.cm;t.nRevR=t.revR-t.cm;
+    t.revPAR=+(t.revT/d).toFixed(1);t.nRevPAR=+(t.nRevT/d).toFixed(1);
+    t.cmPct=t.revT>0?+(t.cm/t.revT*100).toFixed(2):0;t.cancRate=t.bk>0?+(t.cancBK/(t.bk+t.cancBK)*100).toFixed(2):0;
+    return t; }
+  function dpFromMonthly(rows,caps){ var m={};
+    (rows||[]).forEach(function(r){var k=r.mo+'|'+r.grp;if(!m[k])m[k]={m:r.mo,p:r.grp,rn:0,bk:0,ni:0,revT:0,revR:0,cm:0,cancBK:0,disp:0,oor:0};var o=m[k];o.rn+=num(r.rn);o.bk+=num(r.bk);o.ni+=num(r.ni);o.revR+=num(r.revR);o.revT+=num(r.revR)+num(r.clean)+num(r.extra);o.cm+=num(r.comR)+num(r.comC);});
+    (caps||[]).forEach(function(c){var k=c.mo+'|'+c.grp;if(!m[k])m[k]={m:c.mo,p:c.grp,rn:0,bk:0,ni:0,revT:0,revR:0,cm:0,cancBK:0,disp:0,oor:0};m[k].disp+=num(c.cap);m[k].oor+=num(c.blk);});
+    return Object.keys(m).map(function(k){return m[k];}); }
+  function dpUnitFromMonthly(rows,caps){ var m={};
+    (rows||[]).forEach(function(r){var k=r.grp+'|'+r.unit;if(!m[k])m[k]={grp:r.grp,unit:r.unit,rn:0,bk:0,ni:0,rev:0,revT:0,revR:0,cm:0,disp:0};var o=m[k];o.rn+=num(r.rn);o.bk+=num(r.bk);o.ni+=num(r.ni);o.revR+=num(r.revR);o.revT+=num(r.revR)+num(r.clean)+num(r.extra);o.rev+=num(r.revR)+num(r.clean)+num(r.extra);o.cm+=num(r.comR)+num(r.comC);});
+    (caps||[]).forEach(function(c){var k=c.grp+'|'+c.unit;if(m[k])m[k].disp+=num(c.cap);});
+    return Object.keys(m).map(function(k){return m[k];}); }
+  function chanFromMonthly(rows){ var m={};
+    (rows||[]).forEach(function(r){var c=r.ch||'Otros';if(!m[c])m[c]={ch:c,bk:0,rn:0,rev:0,cm:0};m[c].bk+=num(r.bk);m[c].rn+=num(r.rn);m[c].rev+=num(r.revR)+num(r.clean)+num(r.extra);m[c].cm+=num(r.comR)+num(r.comC);});
+    return Object.keys(m).map(function(k){return m[k];}).filter(function(x){return x.rn||x.bk;}); }
+  function bookerFromMonthly(rows){ var m={};
+    (rows||[]).forEach(function(r){var c=r.mkt;if(!c||c==='?'||c==='(s/país)')return;if(!m[c])m[c]={iso:c,bk:0,rn:0,rev:0,bw:0};m[c].bk+=num(r.bk);m[c].rn+=num(r.rn);m[c].rev+=num(r.revR)+num(r.clean)+num(r.extra);m[c].bw+=num(r.bwsum);});
+    return Object.keys(m).map(function(k){var x=m[k];return {iso:x.iso,bk:x.bk,rn:x.rn,rev:x.rev,adr:x.rn?Math.round(x.rev/x.rn*10)/10:0,abv:x.bk?Math.round(x.rev/x.bk*100)/100:0,los:x.bk?Math.round(x.rn/x.bk*100)/100:0,bw:x.rn?Math.round(x.bw/x.rn*10)/10:0};}); }
+
+  window.__applyPeriod=function(){
+    var ORIG=window.__AB_ORIG; if(!ORIG||!ORIG.monthlyAll||!ORIG.monthlyAll.length){ return false; }
+    var PF=window.PERIOD_FILTER||{};
+    var cyY=PF.year||(ORIG.year||2026), lyY=PF.cmpYear||(cyY-1), cyM=PF.month||'ytd', lyM=PF.cmpMonth||cyM;
+    var MA=ORIG.monthlyAll, CAP=ORIG.capDim||[];
+    var cyRows=MA.filter(function(r){return r.y===cyY&&monthOk(cyM,r.mo);});
+    var lyRows=MA.filter(function(r){return r.y===lyY&&monthOk(lyM,r.mo);});
+    var capCY=CAP.filter(function(r){return r.y===cyY&&monthOk(cyM,r.mo);});
+    var capLY=CAP.filter(function(r){return r.y===lyY&&monthOk(lyM,r.mo);});
+    var dp26=dpFromMonthly(cyRows,capCY), dp25=dpFromMonthly(lyRows,capLY);
+    var base=Object.assign({}, ORIG, {
+      salesDim:cyRows, salesDimLY:lyRows, dp26:dp26, dp25:dp25,
+      ytd26:Object.assign({},ORIG.ytd26,aggDP(dp26)), ytd25:Object.assign({},ORIG.ytd25,aggDP(dp25)),
+      dpUnit26:dpUnitFromMonthly(cyRows,capCY), dpUnit25:dpUnitFromMonthly(lyRows,capLY),
+      dpChan26:chanFromMonthly(cyRows), dpChan25:chanFromMonthly(lyRows),
+      booker:bookerFromMonthly(cyRows), year:cyY, __period:{cyY:cyY,lyY:lyY,cyM:cyM,lyM:lyM}
+    });
+    window.__AB_FULL=base;
+    try{ if(window.applyData) window.applyData(base); }catch(e){ console.error('applyPeriod',e); }
+    ['__rebuildClientTables','__rebuildBooker','__rebuildQuality','__rebuildQualityExtra','__rebuildBW','__rebuildPUunit','__rebuildWeb','__rebuildPL','refreshDDtable','renderOverview'].forEach(function(fn){ try{ window[fn]&&window[fn](); }catch(e){} });
+    return true;
+  };
+  // Capturar el dataset ORIGINAL (con monthlyAll, sin filtro de periodo aplicado)
+  setInterval(function(){ var a=window.__AB; if(a&&a.monthlyAll&&!a.__period){ window.__AB_ORIG=a; } }, 500);
+  // Enganchar al cambio de periodo
+  var _spf=window.setPeriodFilter;
+  window.setPeriodFilter=function(ev){ try{ if(_spf)_spf(ev); }catch(e){} setTimeout(function(){ try{ window.__applyPeriod(); }catch(e){} },30); };
+})();
+</script>
+
 </body>
 </html>
