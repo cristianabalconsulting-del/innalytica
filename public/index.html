@@ -6832,7 +6832,7 @@ var DD_DIM_DATA = {
 
 // Active state
 var DD_active_groups = ['demand'];
-var DD_active_dims = ['month','property'];
+var DD_active_dims = ['year','month','room'];
 var DD_current_compare = 'ly';
 
 // Format helpers
@@ -6983,7 +6983,7 @@ function updateDD2summary(mod){
 }
 
 function resetDDdims() {
-  DD_active_dims = ['month','property'];
+  DD_active_dims = ['year','month','room'];
   document.querySelectorAll('#dd-dim-btns .dd-dim-btn').forEach(function(b){
     var d = b.getAttribute('data-dim');
     b.classList.toggle('active', DD_active_dims.indexOf(d) >= 0);
@@ -7605,7 +7605,7 @@ var PD_DIM_DATA = {
   location: [{label:'Barcelona',mult:0.521},{label:'Madrid',mult:0.256},{label:'Valencia',mult:0.224}],
   room: [{label:'Doble Standard',mult:0.412},{label:'Doble Premium',mult:0.198},{label:'Superior',mult:0.280},{label:'Triple',mult:0.110}]
 };
-var PD_active_dims = ['month','lead'];
+var PD_active_dims = ['year','month','room'];
 var PD_active_groups = ['otb'];
 function getActivePDkpis(){ var k=[]; for(var key in PD_KPIS){ if(PD_active_groups.indexOf(PD_KPIS[key].g)>=0) k.push(key); } return k; }
 function togglePDdim(dim, el){
@@ -7619,7 +7619,7 @@ function togglePDdim(dim, el){
   if(lbl) lbl.textContent=PD_active_dims.map(function(d){return L[d]||d}).join(' → ');
   refreshPDtable(); if(typeof updateDD2summary==='function') updateDD2summary('pace');
 }
-function resetPDdims(){ PD_active_dims=['month','lead']; document.querySelectorAll('#pd-dim-btns .dd-dim-btn').forEach(function(b){ b.classList.toggle('active', PD_active_dims.indexOf(b.getAttribute('data-dim'))>=0); }); var lbl=document.getElementById('pd-dim-label'); if(lbl) lbl.textContent='Mes → Antelación'; refreshPDtable(); if(typeof updateDD2summary==='function') updateDD2summary('pace'); }
+function resetPDdims(){ PD_active_dims=['year','month','room']; document.querySelectorAll('#pd-dim-btns .dd-dim-btn').forEach(function(b){ b.classList.toggle('active', PD_active_dims.indexOf(b.getAttribute('data-dim'))>=0); }); var lbl=document.getElementById('pd-dim-label'); if(lbl) lbl.textContent='Mes → Antelación'; refreshPDtable(); if(typeof updateDD2summary==='function') updateDD2summary('pace'); }
 function togglePDgroup(g, el){
   var idx=PD_active_groups.indexOf(g);
   if(idx>=0){ if(PD_active_groups.length===1) return; PD_active_groups.splice(idx,1); if(el)el.classList.remove('active'); }
@@ -7776,7 +7776,7 @@ var KD_DIM_DATA = {
   room: [{label:'Doble Standard',mult:0.412},{label:'Doble Premium',mult:0.198},{label:'Superior',mult:0.280},{label:'Triple',mult:0.110}]
 };
 (function(){ var d=[]; for(var i=1;i<=31;i++){ d.push({label:(i<10?'0':'')+i,mult:1/31*0.93}); } KD_DIM_DATA.day=d; })();
-var KD_active_dims=['month','property'];
+var KD_active_dims=['year','month','room'];
 var KD_active_groups=['pickup'];
 var KD_WINDOW=7;
 var KD_PK_BASE={'pk_rn':{7:184,14:342,30:688},'pk_rev':{7:24800,14:46100,30:92800},'pk_adr':{7:134.8,14:134.8,30:134.9},'pk_bk':{7:46,14:86,30:172}};
@@ -7792,7 +7792,7 @@ function toggleKDdim(dim, el){
   var lbl=document.getElementById('kd-dim-label'); if(lbl) lbl.textContent=KD_active_dims.map(function(d){return L[d]||d}).join(' → ');
   refreshKDtable(); if(typeof updateDD2summary==='function') updateDD2summary('pickup');
 }
-function resetKDdims(){ KD_active_dims=['month','property']; document.querySelectorAll('#kd-dim-btns .dd-dim-btn').forEach(function(b){ b.classList.toggle('active', KD_active_dims.indexOf(b.getAttribute('data-dim'))>=0); }); var lbl=document.getElementById('kd-dim-label'); if(lbl)lbl.textContent='Mes → Propiedad'; refreshKDtable(); if(typeof updateDD2summary==='function') updateDD2summary('pickup'); }
+function resetKDdims(){ KD_active_dims=['year','month','room']; document.querySelectorAll('#kd-dim-btns .dd-dim-btn').forEach(function(b){ b.classList.toggle('active', KD_active_dims.indexOf(b.getAttribute('data-dim'))>=0); }); var lbl=document.getElementById('kd-dim-label'); if(lbl)lbl.textContent='Mes → Propiedad'; refreshKDtable(); if(typeof updateDD2summary==='function') updateDD2summary('pickup'); }
 function toggleKDgroup(g, el){
   var idx=KD_active_groups.indexOf(g);
   if(idx>=0){ if(KD_active_groups.length===1) return; KD_active_groups.splice(idx,1); if(el)el.classList.remove('active'); }
@@ -10742,20 +10742,25 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
     hr1+='</tr>'; thead.innerHTML=hr1;
 
     var rb=rowsByDim(PD_active_dims); var html='';
-    function renderNodes(nodes, lvl){
+    window.__DDEXP=window.__DDEXP||{};
+    function renderNodes(nodes, lvl, kpath){
+      kpath=kpath||[];
       nodes.forEach(function(nd){
         var indent=12+lvl*18;
         var bg=lvl===0?'':lvl===1?'background:rgba(47,140,255,0.02)':'background:rgba(0,0,0,0.08)';
         var fs=lvl===0?'':'font-size:'+(12-lvl*0.5)+'px';
-        html+='<tr style="'+bg+'"><td class="td-label" style="padding-left:'+indent+'px;'+fs+'">'+(nd.children?'<span style="color:var(--t5);font-size:9px;margin-right:4px">▶</span>':'')+nd.label+'</td>';
+        var nk='pd:'+JSON.stringify(kpath.concat([String(nd.label)]));
+        var exp=!!window.__DDEXP[nk]; var hasCh=!!nd.children;
+        var ar=hasCh?'<span class="dd-arrow" style="color:var(--cyan,#5af3ff);font-size:9px;margin-right:4px;display:inline-block;width:9px;text-align:center">'+(exp?'\u25BC':'\u25B6')+'</span>':'';
+        html+='<tr class="pdk-row" data-ddtab="pd" data-ddkey="'+nk.replace(/"/g,'&quot;')+'"'+(hasCh?' data-ddexp="'+(exp?1:0)+'"':'')+' style="'+bg+';cursor:'+(hasCh?'pointer':'default')+'"><td class="td-label" style="padding-left:'+indent+'px;'+fs+'">'+ar+nd.label+'</td>';
         var __cap=(typeof window.__capNode==='function')?window.__capNode((rb.sup||[]).slice(0,lvl+1), nd.rows[0]||{}, 'pace'):null;
         kpis.forEach(function(k){ var v=kval(k,nd.rows,__cap); var d=diff(v[0],v[1],PD_KPIS[k].fmt);
-          html+='<td class="td-cy" style="'+fs+'">'+fmt(v[0],PD_KPIS[k].fmt)+'</td><td class="td-compare">'+fmt(v[1],PD_KPIS[k].fmt)+'</td><td class="'+d.cls+'">'+(v[0]===null?'—':d.txt)+'</td>'; });
+          html+='<td class="td-cy" style="'+fs+'">'+fmt(v[0],PD_KPIS[k].fmt)+'</td><td class="td-compare">'+fmt(v[1],PD_KPIS[k].fmt)+'</td><td class="'+d.cls+'">'+(v[0]===null?'\u2014':d.txt)+'</td>'; });
         html+='</tr>';
-        if(nd.children) renderNodes(nd.children, lvl+1);
+        if(hasCh&&exp) renderNodes(nd.children, lvl+1, kpath.concat([String(nd.label)]));
       });
     }
-    if(rb&&rb.tree) renderNodes(rb.tree,0);
+    if(rb&&rb.tree) renderNodes(rb.tree,0,[]);
     // Total
     var all=rb?rb.flat:pm;
     html+='<tr class="dd-total"><td class="td-label">Total OTB</td>';
@@ -10861,7 +10866,8 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
     hr1+='</tr>'; thead.innerHTML=hr1;
 
     var html='';
-    function render(cyRows, lyRows, level, dimsSoFar){
+    window.__DDEXP=window.__DDEXP||{};
+    function render(cyRows, lyRows, level, dimsSoFar, kpath){ kpath=kpath||[];
       var d=dims[level];
       var gC={}, gL={}, order=[];
       cyRows.forEach(function(r){ var k=keyOf(r,d); if(!(k in gC))gC[k]=[]; gC[k].push(r); if(order.indexOf(k)<0)order.push(k); });
@@ -10875,12 +10881,14 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
         var fs=level===0?'':'font-size:'+(12-level*0.5)+'px';
         var bg=level===0?'':level===1?'background:rgba(47,140,255,0.02)':'background:rgba(0,0,0,0.08)';
         var capv=cap(dso, sample);
-        html+='<tr style="'+bg+'"><td class="td-label" style="padding-left:'+indent+'px;'+fs+(hasC?'':';color:var(--t5)')+'">'+(level<dims.length-1?'<span style="color:var(--t5);font-size:9px;margin-right:4px">▶</span>':'')+lblOf(sample,d)+'</td>';
+        var nk='kd:'+JSON.stringify(kpath.concat([String(k)])); var exp=!!window.__DDEXP[nk]; var hasCh=(level<dims.length-1);
+        var ar=hasCh?'<span class="dd-arrow" style="color:var(--cyan,#5af3ff);font-size:9px;margin-right:4px;display:inline-block;width:9px;text-align:center">'+(exp?'\u25BC':'\u25B6')+'</span>':'';
+        html+='<tr class="pdk-row" data-ddtab="kd" data-ddkey="'+nk.replace(/"/g,'&quot;')+'"'+(hasCh?' data-ddexp="'+(exp?1:0)+'"':'')+' style="'+bg+';cursor:'+(hasCh?'pointer':'default')+'"><td class="td-label" style="padding-left:'+indent+'px;'+fs+(hasC?'':';color:var(--t5)')+'">'+ar+lblOf(sample,d)+'</td>';
         kpis.forEach(function(kp){ var v=kval(kp,cy,ly,capv); var dd=diff(v[0],v[1],KD_KPIS[kp].fmt);
           var cyTxt=hasC?fmt(v[0],KD_KPIS[kp].fmt):'';
           html+='<td class="td-cy" style="'+fs+'">'+cyTxt+'</td><td class="td-compare">'+fmt(v[1],KD_KPIS[kp].fmt)+'</td><td class="'+dd.cls+'">'+((hasC&&v[0]!=null)?dd.txt:'')+'</td>'; });
         html+='</tr>';
-        if(level<dims.length-1) render(cy, ly, level+1, dso);
+        if(hasCh&&exp) render(cy, ly, level+1, dso, kpath.concat([String(k)]));
       });
     }
     render(CY, LY, 0, []);
@@ -11468,7 +11476,7 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
         if(lvl<dims.length-1) render(cy,ly,lvl+1,nd);
       });
     }
-    render(CY,LY,0,[]);
+    render(CY,LY,0,[],[]);
     var capTot=capOf([], CY[0]||{}), unTot=hasNoCap(dims)?null:tU();
     html+='<tr style="font-weight:700;border-top:1px solid var(--border)"><td class="td-label">Total</td>';
     kpis.forEach(function(kp){ var v=kval(kp,CY,LY,capTot,capTot,CC,CL,unTot,unTot); var dd=diff(v[0],v[1],DD_KPIS[kp].fmt); html+='<td class="td-cy">'+fmt(v[0],DD_KPIS[kp].fmt)+'</td><td class="td-compare">'+fmt(v[1],DD_KPIS[kp].fmt)+'</td><td class="'+dd.cls+'">'+(v[0]==null?'—':dd.txt)+'</td>'; });
@@ -12350,7 +12358,7 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
 })();
 
 </script>
-<script>console.log("%cINNALYTICA BUILD = B8-pickupfix","color:#5af3ff;font-weight:bold");window.__BUILD="B16-dd-real";</script>
+<script>console.log("%cINNALYTICA BUILD = B8-pickupfix","color:#5af3ff;font-weight:bold");window.__BUILD="B17-dd-pdkd";</script>
 
 <script id="global-propunit-filter">
 /* Filtro GLOBAL por propiedad/unidad (conjunto de unidades). Deriva un dataset filtrado
