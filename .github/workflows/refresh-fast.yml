@@ -43,8 +43,8 @@ jobs:
           CALENDARIFIC_KEY:    ${{ secrets.CALENDARIFIC_KEY }}
           EVENTS_TTL_DAYS:     '7'
           HOLIDAYS_TTL_DAYS:   '21'
-          POOL_SIZE:           '3'
-          QUERY_SPACING_MS:    '1100'
+          POOL_SIZE:           '12'
+          QUERY_SPACING_MS:    '600'
           QUERY_TIMEOUT_MS:    '180000'
           GROUP:               'fast'
         run: node scripts/generate.js
