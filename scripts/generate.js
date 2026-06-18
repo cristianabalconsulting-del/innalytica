@@ -13,7 +13,11 @@ const HEAVY = ['MIN','CYF2','CLA','ICN-ABAL-1668','ICN-ABAL-1740','ICN-ABAL-1799
 function pickClients(){
   if (process.env.CLIENTS) return process.env.CLIENTS.split(',').map(function(x){return x.trim();}).filter(Boolean);
   const g = (process.env.GROUP || 'all').toLowerCase();
-  if (g === 'fast')  return FULL.filter(function(c){return HEAVY.indexOf(c) < 0;});
+  const FASTALL = FULL.filter(function(c){return HEAVY.indexOf(c) < 0;});
+  const HALF = Math.ceil(FASTALL.length / 2);
+  if (g === 'fast')  return FASTALL.slice();
+  if (g === 'fast1') return FASTALL.slice(0, HALF);
+  if (g === 'fast2') return FASTALL.slice(HALF);
   if (g === 'heavy') return HEAVY.concat(['__ALL__']);
   return FULL.concat(['__ALL__']);
 }
