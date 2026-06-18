@@ -46,7 +46,7 @@ jobs:
           POOL_SIZE:           '12'
           QUERY_SPACING_MS:    '600'
           QUERY_TIMEOUT_MS:    '180000'
-          GROUP:               'fast1'
+          CLIENTS:             'AB,A3R,C&B,CAR,CF,CH,CLM,CYF,EDE,ER,FE,GO,HG,HH,HO,HOM,KN,LCH,LH,MAR'
         run: node scripts/generate.js
       - name: Commit
         if: github.event_name != 'push'

@@ -41,7 +41,7 @@ jobs:
           POOL_SIZE:           '12'
           QUERY_SPACING_MS:    '600'
           QUERY_TIMEOUT_MS:    '180000'
-          GROUP:               'fast2'
+          CLIENTS:             'MT,OSH,REN,SBS,SCO,SG,ST,URB,VIC,CAT,CAT CORDOBA,CAT PORTO,CAT SAN SEBASTIAN,CEL,CINC,MIN-2,SAS,SHM,VVB'
         run: node scripts/generate.js
       - name: Commit
         run: |
