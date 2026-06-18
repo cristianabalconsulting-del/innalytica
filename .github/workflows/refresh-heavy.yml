@@ -17,7 +17,7 @@ concurrency:
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -38,7 +38,8 @@ jobs:
           CALENDARIFIC_KEY:    ${{ secrets.CALENDARIFIC_KEY }}
           EVENTS_TTL_DAYS:     '7'
           HOLIDAYS_TTL_DAYS:   '21'
-          QUERY_SPACING_MS:    '600'
+          POOL_SIZE:           '2'
+          QUERY_SPACING_MS:    '900'
           QUERY_TIMEOUT_MS:    '180000'
           GROUP:               'heavy'
         run: node scripts/generate.js
