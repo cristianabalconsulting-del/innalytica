@@ -38,7 +38,7 @@ jobs:
           CALENDARIFIC_KEY:    ${{ secrets.CALENDARIFIC_KEY }}
           EVENTS_TTL_DAYS:     '7'
           HOLIDAYS_TTL_DAYS:   '21'
-          QUERY_SPACING_MS:    '600'
+          QUERY_SPACING_MS:    '1000'
           QUERY_TIMEOUT_MS:    '180000'
           CLIENTS:             'MT,OSH,REN,SBS,SCO,SG,ST,URB,VIC,CAT,CAT CORDOBA,CAT PORTO,CAT SAN SEBASTIAN,CEL,CINC,MIN-2,SAS,SHM,VVB'
         run: node scripts/generate.js
