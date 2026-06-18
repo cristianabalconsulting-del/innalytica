@@ -109,15 +109,18 @@ function _sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 // Espaciador global opcional (para la generación masiva): limita el ritmo de consultas
 // y así no chocar con el límite de Power BI (120/min). 0 = sin límite (función en vivo).
 const QUERY_SPACING_MS = parseInt(process.env.QUERY_SPACING_MS) || 0;
+const SPACING_MAX = parseInt(process.env.QUERY_SPACING_MAX_MS) || 3000;  // tope del auto-frenado
 let _nextSlot = 0;
 let _pauseUntil = 0;   // pausa global tras un 429 (Power BI pide esperar)
+let _dynSpacing = 0;   // espaciado dinámico: sube tras cada 429 hasta encontrar el ritmo sostenible
 async function _gate(){
   // respeta una pausa global si Power BI nos frenó
   while(_pauseUntil > Date.now()){ await _sleep(Math.min(3000, _pauseUntil - Date.now())); }
-  if(!QUERY_SPACING_MS) return;
+  const SP = Math.max(QUERY_SPACING_MS, _dynSpacing);
+  if(!SP) return;
   const now = Date.now();
   const slot = Math.max(now, _nextSlot);
-  _nextSlot = slot + QUERY_SPACING_MS;
+  _nextSlot = slot + SP;
   const wait = slot - now;
   if(wait>0) await _sleep(wait);
 }
@@ -145,6 +148,7 @@ async function daxQuery(token, query, attempt, deadline) {
         if (!secs) { const m = String(err).match(/Retry in (\d+)\s*second/i); if (m) secs = parseInt(m[1]); }
         if (!secs) secs = (res.status === 429 ? 30 : 5);
         _pauseUntil = Math.max(_pauseUntil, Date.now() + secs * 1000 + 500);  // frena TODO el pipeline
+        if (res.status === 429) { _dynSpacing = Math.min(SPACING_MAX, Math.max(_dynSpacing, QUERY_SPACING_MS||400) + 350); }  // auto-frenar el ritmo
         clearTimeout(timer);
         await _sleep(300);
         return daxQuery(token, query, attempt + 1, deadline);
