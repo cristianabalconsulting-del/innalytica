@@ -16,7 +16,4 @@ function save(file, obj) {
 // fresca si la entrada tiene 'at' y su antigüedad es menor que ttlMs
 function fresh(entry, ttlMs) {
   return !!(entry && entry.at && (Date.now() - Date.parse(entry.at) < ttlMs));
-}
-const days = (n) => Math.max(0, Number(n) || 0) * 86400000;
 
-module.exports = { load, save, fresh, days };
