@@ -6781,54 +6781,6 @@ var DD_KPIS = {
 };
 
 // Dimension row data (simulated, structured per dimension)
-var DD_DIM_DATA = {
-  year: [
-    {label:'2026 YTD', mult:1.0},
-    {label:'2025 YTD', mult:1.44, isCompare:true}
-  ],
-  month: [
-    {label:'Enero',    mult:0.078},{label:'Febrero', mult:0.082},{label:'Marzo',  mult:0.099},
-    {label:'Abril',    mult:0.140},{label:'Mayo',    mult:0.154},{label:'Junio',  mult:0.133},
-    {label:'Julio',    mult:0.097},{label:'Agosto',  mult:0.062},{label:'Sep',    mult:0.070},
-    {label:'Octubre',  mult:0.049},{label:'Noviembre',mult:0.007},{label:'Diciembre',mult:0.009}
-  ],
-  year: [
-    {label:'2026', mult:1.0}
-  ],
-  dow: [
-    {label:'Lunes',mult:0.131},{label:'Martes',mult:0.124},{label:'Miércoles',mult:0.135},
-    {label:'Jueves',mult:0.113},{label:'Viernes',mult:0.157},{label:'Sábado',mult:0.173},{label:'Domingo',mult:0.171}
-  ],
-  day: [
-    {label:'01',mult:0.031},{label:'02',mult:0.030},{label:'03',mult:0.032},{label:'04',mult:0.029},{label:'05',mult:0.034},{label:'06',mult:0.033},{label:'07',mult:0.031},{label:'08',mult:0.030},{label:'09',mult:0.032},{label:'10',mult:0.036},{label:'11',mult:0.031},{label:'12',mult:0.029},{label:'13',mult:0.033},{label:'14',mult:0.034},{label:'15',mult:0.033},{label:'16',mult:0.030},{label:'17',mult:0.031},{label:'18',mult:0.032},{label:'19',mult:0.034},{label:'20',mult:0.035},{label:'21',mult:0.033},{label:'22',mult:0.030},{label:'23',mult:0.029},{label:'24',mult:0.032},{label:'25',mult:0.031},{label:'26',mult:0.030},{label:'27',mult:0.032},{label:'28',mult:0.030},{label:'29',mult:0.031},{label:'30',mult:0.030},{label:'31',mult:0.028}
-  ],
-  property: [
-    {label:'Barrio',   mult:0.521},{label:'Mercado', mult:0.256},{label:'Teatro', mult:0.224}
-  ],
-  channel: [
-    {label:'Booking.com',mult:0.615},{label:'Airbnb',mult:0.080},{label:'Homeaway',mult:0.027},
-    {label:'Directo',  mult:0.189},{label:'Expedia', mult:0.008},{label:'Otros',   mult:0.081}
-  ],
-  rate: [
-    {label:'Flexible', mult:0.412},{label:'No Reembolsable',mult:0.335},{label:'Early Bird',mult:0.142},
-    {label:'Last Minute',mult:0.111}
-  ],
-  market: [
-    {label:'ES', mult:0.318},{label:'GB', mult:0.198},{label:'DE', mult:0.142},
-    {label:'NL', mult:0.098},{label:'PL', mult:0.089},{label:'IT', mult:0.072},{label:'Otros',mult:0.083}
-  ],
-  location: [
-    {label:'Barcelona',mult:0.521},{label:'Madrid',mult:0.256},{label:'Valencia',mult:0.224}
-  ],
-  room: [
-    {label:'Doble Standard',      mult:0.412},{label:'Doble Premium',mult:0.198},
-    {label:'Superior con Terraza',mult:0.142},{label:'Doble Superior',mult:0.138},
-    {label:'Triple',              mult:0.110}
-  ],
-  group: [
-    {label:'Centro (Barrio+Mercado)',mult:0.777},{label:'Ensanche (Teatro)',mult:0.223}
-  ]
-};
 
 // Active state
 var DD_active_groups = ['demand'];
@@ -6879,20 +6831,6 @@ window.DD_hidden=window.DD_hidden||{};
 function toggleDDcol(key){ if(!window.DD_hidden)window.DD_hidden={}; DD_hidden[key]=!DD_hidden[key]; updateDDpills(); if(typeof refreshDDtable==='function')refreshDDtable(); if(typeof updateDD2summary==='function')updateDD2summary('sales'); }
 function getActiveDDkpis() {
   return getActiveDDkpisAll().filter(function(k){ return !(window.DD_hidden&&DD_hidden[k]); });
-}
-
-// Toggle a KPI group
-function toggleDDgroup(g, el) {
-  var idx = DD_active_groups.indexOf(g);
-  if(idx >= 0) {
-    if(DD_active_groups.length > 1) DD_active_groups.splice(idx, 1);
-  } else {
-    DD_active_groups.push(g);
-  }
-  el.classList.toggle('active', DD_active_groups.indexOf(g) >= 0);
-  updateDDpills();
-  refreshDDtable();
-  updateDD2summary('sales');
 }
 
 function resetDDgroups() {
@@ -6982,17 +6920,6 @@ function updateDD2summary(mod){
   segEl.innerHTML=segs;
 }
 
-function resetDDdims() {
-  DD_active_dims = ['month','property'];
-  document.querySelectorAll('#dd-dim-btns .dd-dim-btn').forEach(function(b){
-    var d = b.getAttribute('data-dim');
-    b.classList.toggle('active', DD_active_dims.indexOf(d) >= 0);
-  });
-  var lbl = document.getElementById('dd-dim-label');
-  if(lbl) lbl.textContent = 'Año → Mes → Propiedad';
-  refreshDDtable();
-}
-
 function setDDcompare(c, el) {
   DD_current_compare = c;
   document.querySelectorAll('#dd-custom-period').forEach(function(el2) {
@@ -7056,24 +6983,7 @@ function refreshDDtable() {
   primaryData.forEach(function(row) {
     if(row.isCompare) return;
 
-    // Primary row
-    var hasChildren = secondDim && DD_DIM_DATA[secondDim];
-    html += '<tr class="dd-row-dim" style="cursor:'+(hasChildren?'pointer':'default')+'">';
-    html += '<td class="td-label" style="font-weight:400">'+(hasChildren?'<span style="color:var(--t5);font-size:10px;margin-right:4px">▶</span>':'')+row.label+'</td>';
-    kpis.forEach(function(k) {
-      var kpi = DD_KPIS[k];
-      var cy   = kpi.cy * row.mult;
-      var comp = kpi.ly * row.mult;
-      totals[k].cy   += cy;
-      totals[k].comp += comp;
-      var diff = ddDiff(cy, comp, kpi.fmt);
-      html += '<td class="td-cy">'+ddFmt(cy,kpi.fmt)+'</td>';
-      html += '<td class="td-compare">'+ddFmt(comp,kpi.fmt)+'</td>';
-      html += '<td class="'+diff.cls+'">'+diff.txt+'</td>';
-    });
-    html += '</tr>';
-
-    // Second level
+       // Second level
     if(secondDim && DD_DIM_DATA[secondDim]) {
       var secondData = DD_DIM_DATA[secondDim];
       secondData.forEach(function(row2) {
@@ -7159,19 +7069,7 @@ function setPaceTab(tab, el) {
   if(tab==='forecast'){ setTimeout(function(){ renderPFC(); }, 50); }
 }
 
-// ── QUALITY · BOOKER INSIGHTS ──
-var QBI_DATA = {"temas":[{"t":"Ubicación","vol":312,"pos":94,"syn":["ubicacion","location","lage","emplacement","posizione","locatie","lokalizacja","ubicación","situación","situation","beliggenhed","céntrico","centric"]},{"t":"Limpieza","vol":287,"pos":89,"syn":["limpieza","cleaning","cleaning fee","reinigung","propreté","proprete","pulizia","schoonmaak","czystość","limpio","clean","sauber","propre","pulito"]},{"t":"Comunicación","vol":203,"pos":91,"syn":["comunicacion","communication","kommunikation","comunicazione","communicatie","comunicación","anfitrion","host","gastgeber","hôte","check"]},{"t":"Check-in","vol":176,"pos":85,"syn":["check-in","checkin","check in","llegada","arrival","ankunft","arrivée","arrivo","aankomst","entrada","keys","llaves"]},{"t":"Equipamiento","vol":154,"pos":78,"syn":["equipamiento","equipment","ausstattung","équipement","equipement","attrezzatura","uitrusting","amenities","cocina","kitchen","wifi"]},{"t":"Calidad-precio","vol":198,"pos":72,"syn":["calidad precio","calidad-precio","value","value for money","preis-leistung","rapport qualité prix","qualità prezzo","prijs","precio","price","prix","prezzo","cleaning fee"]},{"t":"Descanso","vol":121,"pos":64,"syn":["descanso","rest","sleep","cama","bed","bett","lit","letto","bed","colchón","mattress","matratze","ruhe","reposo","comodidad","comfort"]},{"t":"Ruido","vol":98,"pos":51,"syn":["ruido","noise","lärm","laut","bruit","bruyant","rumore","rumoroso","lawaai","hałas","støj","ruidoso","noisy"]}],"idiomas":["ES","EN","DE","FR","IT","NL"],"heat":{"Ubicación":{"ES":97,"EN":92,"DE":97,"FR":96,"IT":91,"NL":91},"Limpieza":{"ES":92,"EN":90,"DE":73,"FR":88,"IT":90,"NL":86},"Comunicación":{"ES":92,"EN":89,"DE":88,"FR":79,"IT":91,"NL":91},"Check-in":{"ES":82,"EN":83,"DE":82,"FR":77,"IT":85,"NL":82},"Equipamiento":{"ES":81,"EN":79,"DE":75,"FR":76,"IT":80,"NL":85},"Calidad-precio":{"ES":73,"EN":62,"DE":73,"FR":73,"IT":72,"NL":69},"Descanso":{"ES":62,"EN":61,"DE":52,"FR":67,"IT":62,"NL":63},"Ruido":{"ES":51,"EN":49,"DE":39,"FR":48,"IT":44,"NL":50}},"volij":{"Ubicación":{"ES":65,"EN":78,"DE":26,"FR":13,"IT":65,"NL":65},"Limpieza":{"ES":75,"EN":25,"DE":37,"FR":12,"IT":62,"NL":75},"Comunicación":{"ES":11,"EN":56,"DE":11,"FR":56,"IT":23,"NL":45},"Check-in":{"ES":39,"EN":33,"DE":26,"FR":20,"IT":26,"NL":33},"Equipamiento":{"ES":31,"EN":23,"DE":23,"FR":15,"IT":15,"NL":46},"Calidad-precio":{"ES":20,"EN":10,"DE":50,"FR":30,"IT":50,"NL":40},"Descanso":{"ES":16,"EN":33,"DE":22,"FR":16,"IT":28,"NL":6},"Ruido":{"ES":6,"EN":29,"DE":23,"FR":12,"IT":17,"NL":12}},"reviews":[{"prop":"Teatro","unit":"Apto 1-ABB","score":10,"fecha":"05/03/2026","fechaSort":"20260305","idioma":"FR","tema":"Check-in","canal":"Homeaway","texto":"Check-in un peu compliqué."},{"prop":"Teatro","unit":"Apto 2-AB","score":8.5,"fecha":"07/05/2026","fechaSort":"20260507","idioma":"NL","tema":"Ruido","canal":"Booking","texto":"'s Nachts wat lawaaierig."},{"prop":"Barrio","unit":"Apto P-0","score":8,"fecha":"06/03/2026","fechaSort":"20260306","idioma":"DE","tema":"Descanso","canal":"Expedia","texto":"Das Bett war unbequem."},{"prop":"Mercado","unit":"Apto 1D","score":6,"fecha":"26/01/2026","fechaSort":"20260126","idioma":"DE","tema":"Descanso","canal":"Homeaway","texto":"Das Bett war unbequem."},{"prop":"Barrio","unit":"Apto P-1","score":10,"fecha":"12/03/2026","fechaSort":"20260312","idioma":"EN","tema":"Calidad-precio","canal":"Airbnb","texto":"Value for money could be better, high cleaning fee."},{"prop":"Mercado","unit":"Apto 1D","score":9,"fecha":"12/04/2026","fechaSort":"20260412","idioma":"NL","tema":"Limpieza","canal":"Expedia","texto":"Schoon en comfortabel."},{"prop":"Barrio","unit":"Apto P-3","score":9.5,"fecha":"04/01/2026","fechaSort":"20260104","idioma":"FR","tema":"Calidad-precio","canal":"Homeaway","texto":"Très bon rapport qualité-prix."},{"prop":"Teatro","unit":"Apto 2-AB","score":4,"fecha":"26/03/2026","fechaSort":"20260326","idioma":"NL","tema":"Equipamiento","canal":"Airbnb","texto":"Prima uitgeruste keuken."},{"prop":"Teatro","unit":"Apto 1-ABB","score":10,"fecha":"21/05/2026","fechaSort":"20260521","idioma":"ES","tema":"Limpieza","canal":"Expedia","texto":"El piso muy limpio y acogedor."},{"prop":"Barrio","unit":"Apto P-1","score":9.5,"fecha":"06/02/2026","fechaSort":"20260206","idioma":"PL","tema":"Limpieza","canal":"Homeaway","texto":"Czysto i wygodnie."},{"prop":"Barrio","unit":"Apto P-0","score":9.5,"fecha":"28/01/2026","fechaSort":"20260128","idioma":"IT","tema":"Descanso","canal":"Expedia","texto":"Letto poco comodo."},{"prop":"Mercado","unit":"Apto 3D","score":9,"fecha":"09/05/2026","fechaSort":"20260509","idioma":"FR","tema":"Check-in","canal":"Airbnb","texto":"Check-in un peu compliqué."},{"prop":"Barrio","unit":"Apto P-2","score":9,"fecha":"11/05/2026","fechaSort":"20260511","idioma":"ES","tema":"Limpieza","canal":"Booking","texto":"El piso muy limpio y acogedor."},{"prop":"Barrio","unit":"Apto P-2","score":10,"fecha":"18/05/2026","fechaSort":"20260518","idioma":"ES","tema":"Descanso","canal":"Booking","texto":"La cama incomodísima, no descansamos."},{"prop":"Barrio","unit":"Apto P-2","score":8.5,"fecha":"25/02/2026","fechaSort":"20260225","idioma":"PL","tema":"Limpieza","canal":"Homeaway","texto":"Czysto i wygodnie."},{"prop":"Mercado","unit":"Apto 3D","score":10,"fecha":"22/01/2026","fechaSort":"20260122","idioma":"FR","tema":"Ubicación","canal":"Expedia","texto":"Emplacement parfait, très central."},{"prop":"Teatro","unit":"Apto 2-AB","score":10,"fecha":"18/03/2026","fechaSort":"20260318","idioma":"DE","tema":"Limpieza","canal":"Expedia","texto":"Sehr saubere Wohnung, top."},{"prop":"Barrio","unit":"Apto P-2","score":9,"fecha":"17/04/2026","fechaSort":"20260417","idioma":"PL","tema":"Limpieza","canal":"Booking","texto":"Czysto i wygodnie."},{"prop":"Barrio","unit":"Apto P-2","score":4,"fecha":"12/01/2026","fechaSort":"20260112","idioma":"PL","tema":"Ruido","canal":"Homeaway","texto":"Trochę głośno w nocy."},{"prop":"Teatro","unit":"Apto 2-AB","score":7,"fecha":"28/03/2026","fechaSort":"20260328","idioma":"EN","tema":"Ruido","canal":"Airbnb","texto":"A bit noisy at night."},{"prop":"Teatro","unit":"Apto 1-ABB","score":7,"fecha":"03/04/2026","fechaSort":"20260403","idioma":"PL","tema":"Limpieza","canal":"Expedia","texto":"Czysto i wygodnie."},{"prop":"Mercado","unit":"Apto 3D","score":4,"fecha":"19/03/2026","fechaSort":"20260319","idioma":"DE","tema":"Limpieza","canal":"Airbnb","texto":"Sehr saubere Wohnung, top."},{"prop":"Mercado","unit":"Apto 3D","score":4,"fecha":"20/02/2026","fechaSort":"20260220","idioma":"NL","tema":"Calidad-precio","canal":"Booking","texto":"Goede prijs-kwaliteitverhouding."},{"prop":"Barrio","unit":"Apto P-2","score":9.5,"fecha":"02/04/2026","fechaSort":"20260402","idioma":"EN","tema":"Ubicación","canal":"Expedia","texto":"Great location, close to everything."},{"prop":"Mercado","unit":"Apto 3D","score":6,"fecha":"03/05/2026","fechaSort":"20260503","idioma":"IT","tema":"Descanso","canal":"Booking","texto":"Letto poco comodo."},{"prop":"Barrio","unit":"Apto P-3","score":9,"fecha":"28/02/2026","fechaSort":"20260228","idioma":"FR","tema":"Limpieza","canal":"Booking","texto":"Appartement propre et agréable."},{"prop":"Teatro","unit":"Apto 1-ABB","score":9,"fecha":"14/04/2026","fechaSort":"20260414","idioma":"PL","tema":"Comunicación","canal":"Airbnb","texto":"Komunikacja bez zarzutu."},{"prop":"Mercado","unit":"Apto 1D","score":10,"fecha":"23/01/2026","fechaSort":"20260123","idioma":"EN","tema":"Ubicación","canal":"Homeaway","texto":"Great location, close to everything."},{"prop":"Barrio","unit":"Apto P-0","score":8.5,"fecha":"28/04/2026","fechaSort":"20260428","idioma":"EN","tema":"Calidad-precio","canal":"Airbnb","texto":"Value for money could be better, high cleaning fee."},{"prop":"Barrio","unit":"Apto P-0","score":7,"fecha":"21/03/2026","fechaSort":"20260321","idioma":"FR","tema":"Limpieza","canal":"Airbnb","texto":"Appartement propre et agréable."},{"prop":"Teatro","unit":"Apto 2-AB","score":9.5,"fecha":"19/03/2026","fechaSort":"20260319","idioma":"DE","tema":"Comunicación","canal":"Expedia","texto":"Kommunikation war einwandfrei."},{"prop":"Teatro","unit":"Apto 2-AB","score":10,"fecha":"27/01/2026","fechaSort":"20260127","idioma":"PL","tema":"Limpieza","canal":"Expedia","texto":"Czysto i wygodnie."},{"prop":"Teatro","unit":"Apto 1-ABB","score":9,"fecha":"01/02/2026","fechaSort":"20260201","idioma":"PL","tema":"Limpieza","canal":"Airbnb","texto":"Czysto i wygodnie."},{"prop":"Barrio","unit":"Apto P-1","score":7,"fecha":"18/04/2026","fechaSort":"20260418","idioma":"IT","tema":"Ubicación","canal":"Expedia","texto":"Posizione fantastica, vicino a tutto."},{"prop":"Mercado","unit":"Apto 3D","score":8.5,"fecha":"27/04/2026","fechaSort":"20260427","idioma":"IT","tema":"Ubicación","canal":"Booking","texto":"Posizione fantastica, vicino a tutto."},{"prop":"Barrio","unit":"Apto P-3","score":9.5,"fecha":"17/05/2026","fechaSort":"20260517","idioma":"EN","tema":"Limpieza","canal":"Booking","texto":"Spotless and very comfortable."},{"prop":"Teatro","unit":"Apto 1-ABB","score":8.5,"fecha":"15/03/2026","fechaSort":"20260315","idioma":"FR","tema":"Ruido","canal":"Expedia","texto":"Un peu bruyant le soir."},{"prop":"Teatro","unit":"Apto 1-ABB","score":7,"fecha":"11/01/2026","fechaSort":"20260111","idioma":"IT","tema":"Descanso","canal":"Homeaway","texto":"Letto poco comodo."},{"prop":"Barrio","unit":"Apto P-3","score":7,"fecha":"23/04/2026","fechaSort":"20260423","idioma":"IT","tema":"Limpieza","canal":"Expedia","texto":"Pulito e accogliente."},{"prop":"Barrio","unit":"Apto P-3","score":10,"fecha":"06/05/2026","fechaSort":"20260506","idioma":"FR","tema":"Ruido","canal":"Airbnb","texto":"Un peu bruyant le soir."},{"prop":"Barrio","unit":"Apto P-2","score":7,"fecha":"18/04/2026","fechaSort":"20260418","idioma":"NL","tema":"Ruido","canal":"Homeaway","texto":"'s Nachts wat lawaaierig."},{"prop":"Barrio","unit":"Apto P-3","score":9.5,"fecha":"20/01/2026","fechaSort":"20260120","idioma":"EN","tema":"Check-in","canal":"Airbnb","texto":"Check-in was smooth and easy."},{"prop":"Mercado","unit":"Apto 3D","score":10,"fecha":"27/02/2026","fechaSort":"20260227","idioma":"NL","tema":"Limpieza","canal":"Expedia","texto":"Schoon en comfortabel."},{"prop":"Teatro","unit":"Apto 2-AB","score":9.5,"fecha":"20/05/2026","fechaSort":"20260520","idioma":"EN","tema":"Ruido","canal":"Homeaway","texto":"A bit noisy at night."},{"prop":"Barrio","unit":"Apto P-3","score":9,"fecha":"01/03/2026","fechaSort":"20260301","idioma":"IT","tema":"Comunicación","canal":"Homeaway","texto":"Comunicazione ottima con l'host."},{"prop":"Barrio","unit":"Apto P-0","score":10,"fecha":"03/05/2026","fechaSort":"20260503","idioma":"IT","tema":"Ubicación","canal":"Homeaway","texto":"Posizione fantastica, vicino a tutto."},{"prop":"Barrio","unit":"Apto P-2","score":5,"fecha":"21/04/2026","fechaSort":"20260421","idioma":"DE","tema":"Limpieza","canal":"Expedia","texto":"Sehr saubere Wohnung, top."},{"prop":"Teatro","unit":"Apto 2-AB","score":9,"fecha":"02/03/2026","fechaSort":"20260302","idioma":"PL","tema":"Ruido","canal":"Booking","texto":"Trochę głośno w nocy."},{"prop":"Barrio","unit":"Apto P-3","score":7,"fecha":"06/05/2026","fechaSort":"20260506","idioma":"DE","tema":"Limpieza","canal":"Homeaway","texto":"Sehr saubere Wohnung, top."},{"prop":"Mercado","unit":"Apto 1D","score":10,"fecha":"29/03/2026","fechaSort":"20260329","idioma":"ES","tema":"Calidad-precio","canal":"Booking","texto":"El cleaning fee me pareció caro."},{"prop":"Mercado","unit":"Apto 3D","score":9,"fecha":"17/03/2026","fechaSort":"20260317","idioma":"DE","tema":"Limpieza","canal":"Airbnb","texto":"Sehr saubere Wohnung, top."},{"prop":"Barrio","unit":"Apto P-1","score":8,"fecha":"18/03/2026","fechaSort":"20260318","idioma":"ES","tema":"Descanso","canal":"Booking","texto":"La cama incomodísima, no descansamos."},{"prop":"Teatro","unit":"Apto 2-AB","score":5,"fecha":"09/01/2026","fechaSort":"20260109","idioma":"EN","tema":"Limpieza","canal":"Airbnb","texto":"Spotless and very comfortable."},{"prop":"Barrio","unit":"Apto P-2","score":9,"fecha":"25/02/2026","fechaSort":"20260225","idioma":"DE","tema":"Descanso","canal":"Booking","texto":"Das Bett war unbequem."},{"prop":"Teatro","unit":"Apto 1-ABB","score":10,"fecha":"13/01/2026","fechaSort":"20260113","idioma":"DE","tema":"Limpieza","canal":"Expedia","texto":"Sehr saubere Wohnung, top."},{"prop":"Teatro","unit":"Apto 2-AB","score":10,"fecha":"18/01/2026","fechaSort":"20260118","idioma":"EN","tema":"Check-in","canal":"Expedia","texto":"Check-in was smooth and easy."},{"prop":"Barrio","unit":"Apto P-2","score":8,"fecha":"04/04/2026","fechaSort":"20260404","idioma":"IT","tema":"Ruido","canal":"Airbnb","texto":"Rumoroso di notte."},{"prop":"Barrio","unit":"Apto P-0","score":4,"fecha":"06/05/2026","fechaSort":"20260506","idioma":"FR","tema":"Ruido","canal":"Homeaway","texto":"Un peu bruyant le soir."},{"prop":"Teatro","unit":"Apto 2-AB","score":10,"fecha":"15/01/2026","fechaSort":"20260115","idioma":"FR","tema":"Limpieza","canal":"Homeaway","texto":"Appartement propre et agréable."},{"prop":"Barrio","unit":"Apto P-3","score":8,"fecha":"07/04/2026","fechaSort":"20260407","idioma":"IT","tema":"Limpieza","canal":"Airbnb","texto":"Pulito e accogliente."},{"prop":"Mercado","unit":"Apto 3D","score":10,"fecha":"04/01/2026","fechaSort":"20260104","idioma":"DE","tema":"Descanso","canal":"Homeaway","texto":"Das Bett war unbequem."},{"prop":"Mercado","unit":"Apto 1D","score":4,"fecha":"22/02/2026","fechaSort":"20260222","idioma":"EN","tema":"Ubicación","canal":"Airbnb","texto":"Great location, close to everything."},{"prop":"Mercado","unit":"Apto 3D","score":9,"fecha":"16/01/2026","fechaSort":"20260116","idioma":"ES","tema":"Ruido","canal":"Airbnb","texto":"Algo de ruido por la noche."},{"prop":"Barrio","unit":"Apto P-2","score":7,"fecha":"02/05/2026","fechaSort":"20260502","idioma":"EN","tema":"Calidad-precio","canal":"Airbnb","texto":"Value for money could be better, high cleaning fee."},{"prop":"Barrio","unit":"Apto P-2","score":10,"fecha":"08/03/2026","fechaSort":"20260308","idioma":"FR","tema":"Calidad-precio","canal":"Airbnb","texto":"Très bon rapport qualité-prix."},{"prop":"Barrio","unit":"Apto P-3","score":4,"fecha":"02/03/2026","fechaSort":"20260302","idioma":"ES","tema":"Descanso","canal":"Expedia","texto":"La cama incomodísima, no descansamos."},{"prop":"Teatro","unit":"Apto 1-ABB","score":8,"fecha":"13/05/2026","fechaSort":"20260513","idioma":"EN","tema":"Ruido","canal":"Expedia","texto":"A bit noisy at night."},{"prop":"Teatro","unit":"Apto 1-ABB","score":10,"fecha":"27/03/2026","fechaSort":"20260327","idioma":"NL","tema":"Calidad-precio","canal":"Booking","texto":"Goede prijs-kwaliteitverhouding."},{"prop":"Mercado","unit":"Apto 1D","score":10,"fecha":"17/02/2026","fechaSort":"20260217","idioma":"ES","tema":"Ubicación","canal":"Expedia","texto":"Ubicación inmejorable, repetiríamos."},{"prop":"Teatro","unit":"Apto 1-ABB","score":8.5,"fecha":"19/01/2026","fechaSort":"20260119","idioma":"IT","tema":"Ubicación","canal":"Homeaway","texto":"Posizione fantastica, vicino a tutto."}],"props":["Barrio","Mercado","Teatro"],"units":{"Barrio":["Apto P-0","Apto P-1","Apto P-2","Apto P-3"],"Mercado":["Apto 1D","Apto 3D"],"Teatro":["Apto 1-ABB","Apto 2-AB"]}};
-var QBI_SORT = {col:'fechaSort', dir:'asc'}; // por defecto fecha ascendente (últimos al final)
-var QBI_SCOPE = 'all', QBI_SCOPE_VAL = '';
-function setQualityTab(tab, el){
-  var isTool = (tab!=='main');
-  document.getElementById('quality-hdr-normal').style.display = isTool?'none':'';
-  document.getElementById('quality-hdr-tool').style.display = isTool?'':'none';
-  document.getElementById('quality-tab-main').style.display = isTool?'none':'';
-  var advBand=document.getElementById('quality-adv-band'); if(advBand) advBand.style.display = isTool?'none':'';
-  document.getElementById('quality-tab-booker').style.display = (tab==='booker')?'':'none';
-  if(isTool){ renderQBI(); window.scrollTo({top:0,behavior:'smooth'}); }
-}
+
 function setQBIlevel(level, el){
   if(el){ el.parentElement.querySelectorAll('.pd-win-btn').forEach(function(b){b.classList.remove('on')}); el.classList.add('on'); }
   var sel=document.getElementById('qbi-tbl-filter');
@@ -7257,16 +7155,6 @@ function renderQBImatrix(){
   c.innerHTML=h;
 }
 
-// búsqueda semántica: encuentra el tema cuyos sinónimos contienen el término, devuelve nombre del tema
-function _qbiMatchTopic(q){
-  q=q.toLowerCase().trim(); if(!q) return null;
-  for(var k=0;k<QBI_DATA.temas.length;k++){
-    var t=QBI_DATA.temas[k];
-    if(t.t.toLowerCase().indexOf(q)>=0) return t.t;
-    for(var j=0;j<t.syn.length;j++){ if(t.syn[j].indexOf(q)>=0 || q.indexOf(t.syn[j])>=0) return t.t; }
-  }
-  return null;
-}
 function qbiSort(col){
   if(QBI_SORT.col===col){ QBI_SORT.dir=(QBI_SORT.dir==='asc')?'desc':'asc'; }
   else { QBI_SORT.col=col; QBI_SORT.dir='asc'; }
@@ -7378,10 +7266,6 @@ function _qbiAI(){
 var PFC_DATA = [{"m":"Ene","cur":{"rn":212,"occ":85.5,"adrR":72,"adrT":88,"revR":15254,"revT":18727},"ly":{"rn":217,"occ":87.5,"adrR":69,"adrT":84,"revR":15010,"revT":18168},"pk":{"7":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0},"15":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0},"30":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0},"45":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0}}},{"m":"Feb","cur":{"rn":202,"occ":90.2,"adrR":85,"adrT":104,"revR":17198,"revT":20907},"ly":{"rn":178,"occ":79.5,"adrR":91,"adrT":110,"revR":16237,"revT":19641},"pk":{"7":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0},"15":{"rn":7,"adrR":73,"adrT":85,"revR":511,"revT":594},"30":{"rn":13,"adrR":79,"adrT":92,"revR":1027,"revT":1190},"45":{"rn":13,"adrR":79,"adrT":92,"revR":1027,"revT":1190}}},{"m":"Mar","cur":{"rn":204,"occ":82.3,"adrR":100,"adrT":117,"revR":20469,"revT":23935},"ly":{"rn":226,"occ":91.1,"adrR":79,"adrT":104,"revR":17864,"revT":23514},"pk":{"7":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0},"15":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0},"30":{"rn":5,"adrR":71,"adrT":87,"revR":354,"revT":434},"45":{"rn":5,"adrR":71,"adrT":87,"revR":354,"revT":434}}},{"m":"Abr","cur":{"rn":209,"occ":87.1,"adrR":133,"adrT":152,"revR":27817,"revT":31771},"ly":{"rn":214,"occ":89.2,"adrR":107,"adrT":126,"revR":22836,"revT":27030},"pk":{"7":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0},"15":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0},"30":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0},"45":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0}}},{"m":"May","cur":{"rn":194,"occ":78.2,"adrR":155,"adrT":180,"revR":30020,"revT":34891},"ly":{"rn":211,"occ":85.1,"adrR":117,"adrT":137,"revR":24647,"revT":29005},"pk":{"7":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0},"15":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0},"30":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0},"45":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0}}},{"m":"Jun","cur":{"rn":153,"occ":63.7,"adrR":182,"adrT":198,"revR":27859,"revT":30316},"ly":{"rn":223,"occ":92.9,"adrR":146,"adrT":166,"revR":32485,"revT":37081},"pk":{"7":{"rn":16,"adrR":115,"adrT":135,"revR":1836,"revT":2159},"15":{"rn":32,"adrR":151,"adrT":173,"revR":4822,"revT":5550},"30":{"rn":62,"adrR":139,"adrT":165,"revR":8639,"revT":10256},"45":{"rn":80,"adrR":139,"adrT":165,"revR":11149,"revT":13168}}},{"m":"Jul","cur":{"rn":98,"occ":39.5,"adrR":207,"adrT":225,"revR":20312,"revT":22082},"ly":{"rn":184,"occ":74.2,"adrR":159,"adrT":183,"revR":29228,"revT":33585},"pk":{"7":{"rn":17,"adrR":146,"adrT":160,"revR":2476,"revT":2716},"15":{"rn":39,"adrR":162,"adrT":183,"revR":6334,"revT":7140},"30":{"rn":77,"adrR":164,"adrT":186,"revR":12618,"revT":14310},"45":{"rn":121,"adrR":164,"adrT":188,"revR":19793,"revT":22703}}},{"m":"Ago","cur":{"rn":52,"occ":21.0,"adrR":261,"adrT":272,"revR":13584,"revT":14153},"ly":{"rn":206,"occ":83.1,"adrR":169,"adrT":190,"revR":34779,"revT":39146},"pk":{"7":{"rn":3,"adrR":147,"adrT":174,"revR":441,"revT":521},"15":{"rn":7,"adrR":124,"adrT":147,"revR":870,"revT":1030},"30":{"rn":61,"adrR":160,"adrT":176,"revR":9780,"revT":10745},"45":{"rn":88,"adrR":163,"adrT":180,"revR":14361,"revT":15809}}},{"m":"Sep","cur":{"rn":108,"occ":45.0,"adrR":135,"adrT":148,"revR":14618,"revT":15992},"ly":{"rn":222,"occ":92.5,"adrR":121,"adrT":138,"revR":26955,"revT":30595},"pk":{"7":{"rn":23,"adrR":116,"adrT":130,"revR":2659,"revT":2982},"15":{"rn":28,"adrR":117,"adrT":131,"revR":3265,"revT":3668},"30":{"rn":40,"adrR":112,"adrT":128,"revR":4491,"revT":5134},"45":{"rn":49,"adrR":118,"adrT":134,"revR":5784,"revT":6587}}},{"m":"Oct","cur":{"rn":66,"occ":26.6,"adrR":150,"adrT":168,"revR":9899,"revT":11101},"ly":{"rn":221,"occ":89.1,"adrR":105,"adrT":124,"revR":23312,"revT":27352},"pk":{"7":{"rn":31,"adrR":84,"adrT":89,"revR":2614,"revT":2774},"15":{"rn":37,"adrR":88,"adrT":95,"revR":3264,"revT":3507},"30":{"rn":37,"adrR":88,"adrT":95,"revR":3264,"revT":3507},"45":{"rn":37,"adrR":88,"adrT":95,"revR":3264,"revT":3507}}},{"m":"Nov","cur":{"rn":12,"occ":5.0,"adrR":99,"adrT":126,"revR":1191,"revT":1511},"ly":{"rn":188,"occ":78.3,"adrR":83,"adrT":104,"revR":15611,"revT":19489},"pk":{"7":{"rn":5,"adrR":57,"adrT":89,"revR":286,"revT":446},"15":{"rn":9,"adrR":58,"adrT":85,"revR":526,"revT":769},"30":{"rn":9,"adrR":58,"adrT":85,"revR":526,"revT":769},"45":{"rn":9,"adrR":58,"adrT":85,"revR":526,"revT":769}}},{"m":"Dic","cur":{"rn":13,"occ":5.2,"adrR":147,"adrT":160,"revR":1914,"revT":2074},"ly":{"rn":191,"occ":77.0,"adrR":106,"adrT":125,"revR":20241,"revT":23790},"pk":{"7":{"rn":0,"adrR":0,"adrT":0,"revR":0,"revT":0},"15":{"rn":2,"adrR":186,"adrT":226,"revR":372,"revT":452},"30":{"rn":2,"adrR":186,"adrT":226,"revR":372,"revT":452},"45":{"rn":9,"adrR":196,"adrT":213,"revR":1760,"revT":1920}}}];
 var PFC_MODE='pace', PFC_BUCKET='30', PFC_REV='T';
 var PFC_FIRST_FUTURE=5; // 0=Ene ... hoy=22may2026 => primer mes futuro = Jun (idx5); ene-may ya cerrados
-function setPFCmode(m, el){ PFC_MODE=m; if(el){el.parentElement.querySelectorAll('.pd-win-btn').forEach(function(b){b.classList.remove('on')});el.classList.add('on');} renderPFC(); }
-function setPFCbucket(b, el){ PFC_BUCKET=b; if(el){el.parentElement.querySelectorAll('.pd-win-btn').forEach(function(x){x.classList.remove('on')});el.classList.add('on');} renderPFC(); }
-function setPFCrev(r, el){ PFC_REV=r; if(el){el.parentElement.querySelectorAll('.pd-win-btn').forEach(function(x){x.classList.remove('on')});el.classList.add('on');} renderPFC(); }
-function _pfcAdr(o){ return PFC_REV==='T'?o.adrT:o.adrR; }
 function _pfcRev(o){ return PFC_REV==='T'?o.revT:o.revR; }
 function renderPFC(){
   var tbl=document.getElementById('pfc-table'); if(!tbl) return;
@@ -7496,10 +7380,6 @@ var PEV_CAT=['Apto P-0','Apto P-1','Apto P-2','Apto P-3','Apto 1D','Apto 3D','Ap
 var PEV_CAT2PROP=[0,0,0,0,1,1,2,2]; // cada categoría a qué edificio pertenece
 var PEV_UNITS_PER_PROP=[4,2,2];
 var MESF=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-function setPEVkpi(k, el){ PEV_KPI=k; if(el){el.parentElement.querySelectorAll('.pd-win-btn').forEach(function(b){b.classList.remove('on')});el.classList.add('on');} renderPerfEvo(); }
-function setPEVbreak(d, el){ PEV_BREAK=d; if(el){el.parentElement.querySelectorAll('.pd-win-btn').forEach(function(b){b.classList.remove('on')});el.classList.add('on');} renderPerfEvo(); }
-function setPEVrev(r, el){ PEV_REV_T=(r==='T'); if(el){el.parentElement.querySelectorAll('.pd-win-btn').forEach(function(b){b.classList.remove('on')});el.classList.add('on');} renderPerfEvo(); }
-function _pevDaysInMonth(y,m){ return new Date(y,m,0).getDate(); }
 // PEV_MIN: [b(creation), m(stay month), y(stay year), p(prop), u(cat), n, rr, rt]
 // foto OTB al inicio del rango (cr<=from) + pick-up del periodo (from<cr<=to), por mes de estancia
 // usa revenue room (idx6) o total (idx7) según PEV_REV_T
@@ -7588,10 +7468,7 @@ function _pevAI(from, to, year){
   var fromM=parseInt(from.slice(5,7));
   var totRn=0,totRev=0,availTot=0, pkRn=0,pkRev=0;
   for(var m=fromM;m<=12;m++){ var a=_pevAgg(from,to,year,function(r){return r[1]===m;}); totRn+=a.photo.rn; totRev+=a.photo.rr; availTot+=PEV_UNITS*_pevDaysInMonth(year,m); pkRn+=a.pk.rn; pkRev+=a.pk.rr; }
-  var globalOcc=availTot?(totRn/availTot*100):0;
-  var globalAdr=totRn?Math.round(totRev/totRn):0;
-  var pkAdr=pkRn?Math.round(pkRev/pkRn):0;
-  var d=new Date(from+'T00:00:00'), d2=new Date(to+'T00:00:00');
+   var d=new Date(from+'T00:00:00'), d2=new Date(to+'T00:00:00');
   var fechaTxt=d.toLocaleDateString('es',{day:'numeric',month:'long',year:'numeric'});
   var rangoTxt=(from===to)?('el '+fechaTxt):('del '+d.toLocaleDateString('es',{day:'numeric',month:'short'})+' al '+d2.toLocaleDateString('es',{day:'numeric',month:'short',year:'numeric'}));
   set('pev-ai-m1',globalOcc.toFixed(1)+'%'); set('pev-ai-m2',globalAdr+'€'); set('pev-ai-m3',totRev.toLocaleString('es')+'€'); set('pev-ai-m4',pkRn>0?'+'+pkRn+' RN':'0 RN');
@@ -7613,22 +7490,13 @@ var PD_KPIS = {
   'otb_occ': {g:'otb',n:'03. Ocupación OTB',      fmt:'pct',  cy:62.1, ly:71.4},
   'otb_rev': {g:'otb',n:'04. Revenue OTB',        fmt:'eur-k',cy:363280,ly:328396},
   'otb_adr': {g:'otb',n:'05. ADR OTB',            fmt:'eur',  cy:137.6,ly:132.4},
-  'pace_rn': {g:'pace',n:'06. Pace RN vs LY',     fmt:'pct',  cy:6.4,  ly:0},
-  'pace_rev':{g:'pace',n:'07. Pace Revenue vs LY',fmt:'pct',  cy:10.6, ly:0},
-  'pace_occ':{g:'pace',n:'08. Pace Occ vs LY',    fmt:'pct',  cy:-9.3, ly:0},
-  'pace_adr':{g:'pace',n:'09. Pace ADR vs LY',    fmt:'pct',  cy:3.9,  ly:0},
   'pk_rn':   {g:'pickup',n:'10. Pick-up RN 7d',   fmt:'n',    cy:184,  ly:142},
   'pk_rev':  {g:'pickup',n:'11. Pick-up Rev 7d',  fmt:'eur-k',cy:24800,ly:18900},
   'pk_adr':  {g:'pickup',n:'12. ADR Pick-up 7d',  fmt:'eur',  cy:134.8,ly:133.1},
   'pk_vel':  {g:'pickup',n:'13. Velocidad (RN/día)',fmt:'dec',cy:26.3, ly:20.3},
   'pr_adr':  {g:'pricing',n:'14. ADR medio',      fmt:'eur',  cy:137.6,ly:132.4},
-  'pr_nadr': {g:'pricing',n:'15. Net ADR',        fmt:'eur',  cy:113.0,ly:108.7},
-  'pr_min':  {g:'pricing',n:'16. ADR mínimo',     fmt:'eur',  cy:78.0, ly:74.0},
-  'pr_max':  {g:'pricing',n:'17. ADR máximo',     fmt:'eur',  cy:268.0,ly:255.0},
   'pr_rps':  {g:'pricing',n:'18. RevPAR OTB',     fmt:'eur',  cy:85.4, ly:94.5},
-  'gap_rn':  {g:'gap',n:'19. RN para igualar LY', fmt:'n',    cy:-159, ly:0},
-  'gap_rev': {g:'gap',n:'20. Revenue pendiente',  fmt:'eur-k',cy:0,    ly:0},
-  'gap_adr': {g:'gap',n:'21. ADR necesario',      fmt:'eur',  cy:0,    ly:0}
+
 };
 var PD_DIM_DATA = {
   year: [{label:'2026',mult:1.0}],
@@ -7637,10 +7505,6 @@ var PD_DIM_DATA = {
   day: [{label:'01',mult:0.0340},{label:'02',mult:0.0260},{label:'03',mult:0.0340},{label:'04',mult:0.0260},{label:'05',mult:0.0340},{label:'06',mult:0.0260},{label:'07',mult:0.0340},{label:'08',mult:0.0260},{label:'09',mult:0.0340},{label:'10',mult:0.0260},{label:'11',mult:0.0340},{label:'12',mult:0.0260},{label:'13',mult:0.0340},{label:'14',mult:0.0260},{label:'15',mult:0.0340},{label:'16',mult:0.0260},{label:'17',mult:0.0340},{label:'18',mult:0.0260},{label:'19',mult:0.0340},{label:'20',mult:0.0260},{label:'21',mult:0.0340},{label:'22',mult:0.0260},{label:'23',mult:0.0340},{label:'24',mult:0.0260},{label:'25',mult:0.0340},{label:'26',mult:0.0260},{label:'27',mult:0.0340},{label:'28',mult:0.0260},{label:'29',mult:0.0340},{label:'30',mult:0.0260},{label:'31',mult:0.0340}],
   lead: [{label:'0-7 días',mult:0.12},{label:'8-30 días',mult:0.23},{label:'31-60 días',mult:0.28},{label:'61-90 días',mult:0.21},{label:'90+ días',mult:0.16}],
   property: [{label:'Barrio',mult:0.521},{label:'Mercado',mult:0.256},{label:'Teatro',mult:0.224}],
-  group: [{label:'Centro',mult:0.777},{label:'Ensanche',mult:0.223}],
-  channel: [{label:'Booking.com',mult:0.615},{label:'Directo',mult:0.189},{label:'Airbnb',mult:0.080},{label:'Otros',mult:0.116}],
-  rate: [{label:'Flexible',mult:0.412},{label:'No Reembolsable',mult:0.335},{label:'Early Bird',mult:0.142},{label:'Last Minute',mult:0.111}],
-  market: [{label:'ES',mult:0.318},{label:'GB',mult:0.198},{label:'DE',mult:0.142},{label:'Otros',mult:0.342}],
   location: [{label:'Barcelona',mult:0.521},{label:'Madrid',mult:0.256},{label:'Valencia',mult:0.224}],
   room: [{label:'Doble Standard',mult:0.412},{label:'Doble Premium',mult:0.198},{label:'Superior',mult:0.280},{label:'Triple',mult:0.110}]
 };
@@ -7795,10 +7659,6 @@ var KD_KPIS = {
   'pk_adr': {g:'pickup',n:'03. ADR Pick-up',    fmt:'eur',  cy:134.8,ly:133.1},
   'pk_bk':  {g:'pickup',n:'04. Reservas',        fmt:'n',    cy:46,  ly:38},
   'cmp_rn': {g:'compare',n:'05. RN vs LY',       fmt:'pct',  cy:29.6,ly:0},
-  'cmp_rev':{g:'compare',n:'06. Revenue vs LY',  fmt:'pct',  cy:31.2,ly:0},
-  'cmp_adr':{g:'compare',n:'07. ADR vs LY',      fmt:'pct',  cy:1.3, ly:0},
-  'cmp_vel':{g:'compare',n:'08. Velocidad vs LY',fmt:'pct',  cy:29.6,ly:0},
-  'occ_g':  {g:'occupancy',n:'09. Gross Occ',    fmt:'pct',  cy:62.1,ly:71.4},
   'occ_n':  {g:'occupancy',n:'10. Net Occ',      fmt:'pct',  cy:54.8,ly:63.2},
   'occ_av': {g:'occupancy',n:'11. RNs disponibles',fmt:'n',  cy:1240,ly:1240},
   'can_rn': {g:'cancels',n:'12. RN Canceladas',  fmt:'n',    cy:23,  ly:31},
@@ -7863,9 +7723,6 @@ function refreshKDtable(){
   if(!thead||!tbody) return;
   var kpis=getActiveKDkpis().filter(function(k){return !(window.KD_hidden&&KD_hidden[k]);});
   if(kpis.length===0){ thead.innerHTML=''; tbody.innerHTML='<tr><td style="text-align:center;padding:20px;color:var(--t5)">Selecciona al menos un grupo de métricas</td></tr>'; return; }
-  var gLabels={pickup:'Pick-up',compare:'vs Año pasado',occupancy:'Ocupación',cancels:'Cancelaciones'};
-  var gOrder=['pickup','compare','occupancy','cancels'];
-  var hGroups={}; kpis.forEach(function(k){ var g=KD_KPIS[k].g; (hGroups[g]=hGroups[g]||[]).push(k); });
   var L={month:'Mes',day:'Día',dow:'Día de la semana',lead:'Antelación',property:'Propiedad',group:'Grupo',channel:'Canal',rate:'Tarifa',market:'Mercado',location:'Ubicación',room:'Unidad'};
   var dimLabel=KD_active_dims.map(function(d){return L[d]}).join(' → ');
   var hr1='<tr><th rowspan="2" style="text-align:left;min-width:150px;color:var(--t4)">'+dimLabel+'</th>';
@@ -7975,16 +7832,12 @@ var CH_STAYED = {
   rev: {
     'Booking':  [15520,17290,19810,26330,28940,25140,18300,11710,13250,9190,1250,1715],
     'Airbnb':   [2100,2480,2860,3810,4120,3720,2590,1680,1920,1330,185,244],
-    'Homeaway': [480,530,700,830,980,820,620,430,490,340,45,62],
-    'Octorate': [180,210,290,340,420,330,250,170,195,135,18,24],
     'Expedia':  [120,160,190,280,310,240,180,120,145,100,13,18],
   },
   comm: {
     'Booking':  [2873,3198,3665,4871,5354,4651,3385,2166,2451,1700,231,317],
     'Airbnb':   [384,454,524,698,755,681,474,308,352,244,34,45],
-    'Homeaway': [0,0,0,0,0,0,0,0,0,0,0,0],
-    'Octorate': [0,0,0,0,0,0,0,0,0,0,0,0],
-    'Expedia':  [24,31,37,55,61,47,35,24,28,20,3,4],
+
   }
 };
 
@@ -7993,9 +7846,6 @@ var CH_PALETTE = {
   'Booking':       'rgba(58,111,168,0.7)',
   'Airbnb':        'rgba(193,98,119,0.65)',
   'Homeaway':      'rgba(43,184,176,0.6)',
-  'Homeaway/Vrbo': 'rgba(43,184,176,0.6)',
-  'Octorate':      'rgba(107,125,150,0.6)',
-  'Directo':       'rgba(43,184,176,0.7)',
   'Expedia':       'rgba(201,160,78,0.6)',
 };
 
@@ -8307,13 +8157,6 @@ function renderPricingImpact(){
     var diasAltaRn=[]; var medRn=rn.slice().sort(function(a,b){return a-b;})[Math.floor(rn.length/2)];
     rn.forEach(function(v,i){ if(v>medRn && adr[i]!=null) diasAltaRn.push(adr[i]); });
     var adrEnAltaRn=diasAltaRn.length?diasAltaRn.reduce(function(s,x){return s+x},0)/diasAltaRn.length:avg;
-    var estimula=(adrEnAltaRn < avg);
-    set('pid-ai-m1',avgAdr.toFixed(0)+'€'); set('pid-ai-m2',maxAdr+'€'); set('pid-ai-m3',minAdr+'€'); set('pid-ai-m4',rows.length);
-    var hl=document.getElementById('pid-ai-headline');
-    if(hl) hl.innerHTML='En esta ventana el ADR de cierre va de <span class="hi">'+minAdr+'€</span> a <span class="hi">'+maxAdr+'€</span>, con una media de '+avgAdr.toFixed(0)+'€.';
-    var qp=document.getElementById('pid-ai-quepasa');
-    if(qp) qp.innerHTML='Entraron <strong>'+rows.length+' reservas</strong> ('+totN+' noches) en el periodo de reserva seleccionado. El día de mayor entrada fue el <strong>'+diaPico+'</strong> con '+rnPico+' noches'+(adrPico?' a un ADR de cierre de '+adrPico+'€':'')+'.';
-    var pq=document.getElementById('pid-ai-porque');
     if(pq) pq.innerHTML=estimula
       ? 'En los días de mayor entrada de reservas, el ADR de cierre fue <strong>más bajo</strong> que la media ('+Math.round(adrEnAltaRn)+'€ vs '+avgAdr.toFixed(0)+'€): el precio parece haber estimulado la demanda en este periodo.'
       : 'En los días de mayor entrada, el ADR de cierre se mantuvo <strong>en línea o por encima</strong> de la media ('+Math.round(adrEnAltaRn)+'€ vs '+avgAdr.toFixed(0)+'€): la demanda entró sin necesidad de bajar precio.';
