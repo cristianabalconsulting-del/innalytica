@@ -11,9 +11,7 @@ const WORKSPACE_ID  = process.env.PBI_WORKSPACE_ID;   // 650d8d68-0c99-4684-89e7
 const DATASET_ID    = process.env.PBI_DATASET_ID;     // 174a154d-a484-48c9-9023-7c71bae578e8
 
 // ── Estado a nivel de módulo (se reutiliza entre invocaciones "warm") ──
-const RESP_TTL_MS   = 300000;   // 5 min de caché de respuesta por (alojamiento, año)
-const QUERY_TIMEOUT = parseInt(process.env.QUERY_TIMEOUT_MS) || 12000;  // configurable (la generación usa más)
-const POOL_SIZE     = parseInt(process.env.POOL_SIZE) || 14;  // configurable (generación usa pool bajo)
+
 const BUDGET_MS     = parseInt(process.env.PBI_BUDGET_MS) || 7500;  // cabe en el límite de 10s de Free
 const ESSENTIAL     = {kpi:1,ytdToday:1,mesActual:1,dp26:1,dp25:1,capDim:1,unitsCount:1,dpChan26:1,dpChan25:1,pace26:1,pace25:1,paceLead:1}; // se piden primero
 let   TOKEN_CACHE   = { token: null, exp: 0 };
@@ -35,10 +33,7 @@ async function _store(){
   } catch (e) { _blobStore = null; console.error('[blobs] NO DISPONIBLE -> sin caché:', e.message); }
   return _blobStore;
 }
-async function blobGet(key){ try { const st = await _store(); if(!st) return null; return (await st.get(key,{type:'json'}))||null; } catch(e){ return null; } }
-async function blobSet(key,val){ try { const st = await _store(); if(!st) return; await st.setJSON(key,val); } catch(e){} }
-// Última hora de refresco REAL del dataset en Power BI (REST refresh history).
-// Así recalculamos exactamente cuando PBI se actualiza (2am, 3am o intradía), no a hora fija.
+
 let REFRESH_CHECK = { ms: 0, exp: 0 };
 async function getLastRefreshMs(token){
   if (REFRESH_CHECK.exp > Date.now()) return REFRESH_CHECK.ms;
@@ -194,16 +189,6 @@ async function runQueries(token, queries, deadline) {
   return { out: out, dropped: dropped };
 }
 
-// ── Queries DAX exactas (mismo modelo verificado) ────────────────────
-function buildQueries(year, aloj) {
-  const prevYear = year - 1;
-  // alojamiento puede ser uno o varios (separados por '|'); se agregan con IN {...}.
-  // '__ALL__' = todos (vista portfolio) -> modo ligero.
-  const ALL_ALOJ = ['A3R','AB','C&B','CAR','CF','CH','CLA','CLM','CYF','CYF2','EDE','ER','FE','GO','HG','HH','HO','HOM','KN','LCH','LH','MAR','MT','OSH','REN','SBS','SCO','SG','ST','URB','VIC','CAT','CAT CORDOBA','CAT PORTO','CAT SAN SEBASTIAN','CEL','CINC','MIN','MIN-2','SAS','SHM','VVB','ICN-ABAL-1668','ICN-ABAL-1740','ICN-ABAL-1799','ICN-ABAL-1835','ICN-ABAL-1847','ICN-ABAL-2377','ICN-ABAL-2628','ICN-ABAL-2667','ICN-ABAL-2936'];
-  const _isAll = String(aloj==null?'':aloj).indexOf('__ALL__') >= 0;
-  const _alojList = _isAll ? ALL_ALOJ.slice() : String(aloj==null?'':aloj).split('|').map(function(x){return x.trim();}).filter(Boolean);
-  const _alojSafe = _alojList.length ? _alojList : ['AB'];
-  const alojIN = '{' + _alojSafe.map(function(a){return '"'+a.replace(/"/g,'')+'"';}).join(',') + '}';
 
   // Filtro de anio por RANGO de fechas (equivalente exacto a YEAR()=y, pero el storage engine lo resuelve mucho mas rapido).
   const _yEst = (y) => `'Informe Reservas Total'[Fecha Estancia]>=DATE(${y},1,1)&&'Informe Reservas Total'[Fecha Estancia]<DATE(${y+1},1,1)`;
