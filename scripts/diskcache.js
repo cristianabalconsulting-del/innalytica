@@ -16,4 +16,8 @@ function save(file, obj) {
 // fresca si la entrada tiene 'at' y su antigüedad es menor que ttlMs
 function fresh(entry, ttlMs) {
   return !!(entry && entry.at && (Date.now() - Date.parse(entry.at) < ttlMs));
+}
+// convierte días -> milisegundos (para los TTL configurables, p.ej. dc.days(21))
+function days(n) { const v = parseFloat(n); return (isNaN(v) ? 0 : v) * 86400000; }
 
+module.exports = { load, save, fresh, days };
