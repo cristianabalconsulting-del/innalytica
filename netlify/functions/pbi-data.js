@@ -146,7 +146,7 @@ async function daxQuery(token, query, attempt, deadline) {
         await _sleep(300);
         return daxQuery(token, query, attempt + 1, deadline);
       }
-      if(!global.__idck){global.__idck=1;console.error('IDCHECK','WS_OK='+(WORKSPACE_ID==='650d8d68-0c99-4684-89e7-59d80978db30'),'DS_OK='+(DATASET_ID==='174a154d-a484-48c9-9023-7c71bae578e8'),'WSlen='+(WORKSPACE_ID||'').length,'DSlen='+(DATASET_ID||'').length,'ST='+JSON.stringify(res.statusText));} throw new Error(`DAX ${res.status}: ${err.slice(0,500)}||POWERBIINFO=${res.headers.get('x-powerbi-error-info')}`);
+      throw new Error(`DAX ${res.status}: ${err.slice(0,160)}`);
     }
     const data = await res.json();
     if (data.error) throw new Error(`DAX: ${data.error.code}`);
