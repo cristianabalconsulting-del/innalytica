@@ -146,7 +146,7 @@ async function daxQuery(token, query, attempt, deadline) {
         await _sleep(300);
         return daxQuery(token, query, attempt + 1, deadline);
       }
-      throw new Error(`DAX ${res.status}: ${err.slice(0,160)}`);
+      throw new Error(`DAX ${res.status}: ${err.slice(0,500)}||POWERBIINFO=${res.headers.get('x-powerbi-error-info')}`);
     }
     const data = await res.json();
     if (data.error) throw new Error(`DAX: ${data.error.code}`);
