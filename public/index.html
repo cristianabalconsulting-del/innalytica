@@ -8331,7 +8331,7 @@ function renderBW(){
   var totRn=BW_CACHE.reduce(function(s,x){return s+x.rn},0);
   var totRev=BW_CACHE.reduce(function(s,x){return s+x.rev},0);
   var k1=document.getElementById('bw-k-rn'); if(k1)k1.textContent=totRn;
-  var k2=document.getElementById('bw-k-bk'); if(k2)k2.textContent=rows.length;
+  var k2=document.getElementById('bw-k-bk'); if(k2){var _rv=null; if(window.__PID_BK){_rv=0; for(var _d in window.__PID_BK){ if(_d>=from&&_d<=__BT)_rv+=(window.__PID_BK[_d]||0); }} k2.textContent=(_rv!=null?_rv:rows.length);}
   var k3=document.getElementById('bw-k-rev'); if(k3)k3.textContent=totRev.toLocaleString('es')+'\u20ac';
   var k4=document.getElementById('bw-k-adr'); if(k4)k4.textContent=(totRn?Math.round(totRev/totRn):0)+'\u20ac';
   mk('c-bw', {type:'bar', data:{
@@ -11329,6 +11329,7 @@ window.PICKUP_FB_LY=[{"d":"2025-06-09","y":2025,"mo":6,"unit":"P-0","grp":"Barri
     var ab=window.__AB; if(!ab) return;
     if(ab.pickupStay&&ab.pickupStay.length){
       window.__PID_ROWS = ab.pickupStay.map(function(r){return {b:r.d,s:r.sd,n:r.rn,rev:r.rev};});
+      window.__PID_BK={}; if(ab.pickupBk){ab.pickupBk.forEach(function(r){if(r&&r.d)window.__PID_BK[r.d]=r.bk;});}
     }
     if(ab.today){
       window.__BW_TODAY = ab.today;
