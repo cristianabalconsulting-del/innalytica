@@ -349,6 +349,12 @@ ytdToday: `EVALUATE ROW("Rev",CALCULATE(SUM('Informe Reservas Total'[ADR ING])+S
       "RN",COUNTROWS('Informe Reservas Total'),
       "Rev",SUM('Informe Reservas Total'[ADR ING])+SUM('Informe Reservas Total'[Cleaning Diario])+SUM('Informe Reservas Total'[Extras Diario])))`,
 
+    pickupBk: `EVALUATE CALCULATETABLE(SUMMARIZECOLUMNS('Fecha Venta'[Date],
+      FILTER(Habitaciones,Habitaciones[Activo_Condicional]="Activo"),
+      FILTER('Fechas estancia','Fechas estancia'[Date]>=${todayDAX}),
+      FILTER('Informe Reservas Total','Informe Reservas Total'[Alojamiento] IN ${alojIN}&&'Informe Reservas Total'[Conexion]="OK"&&'Informe Reservas Total'[Status]="CONFIRMED"&&'Informe Reservas Total'[Create time]>=${todayDAX}-31),
+      "BK",DISTINCTCOUNT('Informe Reservas Total'[Refer])))`,
+
     pickupStayLY: `EVALUATE CALCULATETABLE(SUMMARIZECOLUMNS('Fecha Venta'[Date],'Fechas estancia'[Date],
       FILTER(Habitaciones,Habitaciones[Activo_Condicional]="Activo"),FILTER('Informe Reservas Total','Informe Reservas Total'[Alojamiento] IN ${alojIN}&&'Informe Reservas Total'[Conexion]="OK"&&'Informe Reservas Total'[Status]="CONFIRMED"&&'Informe Reservas Total'[Create time]>=${todayDAX}-396&&'Informe Reservas Total'[Create time]<${todayDAX}-364),
       "RN",COUNTROWS('Informe Reservas Total'),
@@ -627,6 +633,7 @@ function processData(raw, year) {
   const pickupStay = (raw.pickupStay || []).map(r => ({
     d:(r[FVK2]||'').split('T')[0], sd:(r[SDK]||'').split('T')[0], rn:r['[RN]']||0, rev:Math.round(r['[Rev]']||0)
   })).filter(x => x.d && x.sd);
+  const pickupBk = (raw.pickupBk || []).map(function(r){ return { d:(r[FVK2]||'').split('T')[0], bk:r['[BK]']||0 }; }).filter(function(x){ return x.d; });
   const pickupStayLY = (raw.pickupStayLY || []).map(r => ({
     d:(r[FVK2]||'').split('T')[0], sd:(r[SDK]||'').split('T')[0], rn:r['[RN]']||0, rev:Math.round(r['[Rev]']||0)
   })).filter(x => x.d && x.sd);
@@ -880,7 +887,7 @@ function processData(raw, year) {
     pace26: aggPace(raw.pace26 || []),
     pace25: aggPace(raw.pace25 || []),
     pu,
-    pickupDaily, pickupMonth, pickupLY, pickupStay, pickupStayLY,
+    pickupDaily, pickupMonth, pickupLY, pickupStay, pickupStayLY, pickupBk,
     today: isoToday,
     pace, paceDaily, paceYearAv,
     paceOTB, paceOTBLY, paceOTBD, paceOTBDLY,
