@@ -351,7 +351,6 @@ ytdToday: `EVALUATE ROW("Rev",CALCULATE(SUM('Informe Reservas Total'[ADR ING])+S
 
     pickupBk: `EVALUATE CALCULATETABLE(SUMMARIZECOLUMNS('Fecha Venta'[Date],
       FILTER(Habitaciones,Habitaciones[Activo_Condicional]="Activo"),
-      FILTER('Fechas estancia','Fechas estancia'[Date]>=${todayDAX}),
       FILTER('Informe Reservas Total','Informe Reservas Total'[Alojamiento] IN ${alojIN}&&'Informe Reservas Total'[Conexion]="OK"&&'Informe Reservas Total'[Status]="CONFIRMED"&&'Informe Reservas Total'[Create time]>=${todayDAX}-31),
       "BK",DISTINCTCOUNT('Informe Reservas Total'[Refer])))`,
 
