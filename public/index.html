@@ -3100,7 +3100,7 @@ body { -webkit-font-smoothing: antialiased; }
             <div class="ai-metric"><span class="ai-metric-val info" id="bw-ai-m4">66</span><span class="ai-metric-lbl">Fechas con entradas</span></div>
           </div>
           <div class="ai-3a">
-            <div class="ai-row"><span class="ai-tag ai-tag-a">Qué pasa</span><div class="ai-text" id="bw-ai-quepasa">En los últimos 60 días has captado 448 noches para estancias futuras, repartidas en 66 fechas.</div></div>
+            <div class="ai-row"><span class="ai-tag ai-tag-a">Qué pasa</span><div class="ai-text" id="bw-ai-quepasa">En los últimos 31 días has captado 448 noches repartidas en 66 fechas.</div></div>
             <div class="ai-row"><span class="ai-tag ai-tag-a">Por qué</span><div class="ai-text" id="bw-ai-porque">Los días fuertes suelen coincidir con fechas de alta demanda. Los días flojos, con 1-2 noches, son fechas que aún no despiertan interés.</div></div>
             <div class="ai-row"><span class="ai-tag ai-tag-c">Qué hacer</span><div class="ai-text" id="bw-ai-quehacer">Revisa los días fuertes para confirmar que no te estás quedando corto de precio, y los días flojos para ver si comparten patrón que merezca una acción de visibilidad.</div></div>
           </div>
@@ -3140,7 +3140,7 @@ body { -webkit-font-smoothing: antialiased; }
       <div class="card" style="padding:0;overflow:hidden">
         <table class="pl-mtbl" id="bw-table" style="min-width:auto"></table>
       </div>
-      <div style="margin-top:8px;font-size:10.5px;color:var(--t5);font-weight:300">Datos reales · pick-up = noches captadas en los últimos 60 días para fechas de estancia futuras</div>
+      <div style="margin-top:8px;font-size:10.5px;color:var(--t5);font-weight:300">Datos reales · pick-up = noches captadas en los últimos 31 días, para todas las fechas de estancia (mismo criterio que Power BI)</div>
     </div>
   </div>
 
@@ -8320,7 +8320,7 @@ var BW_CACHE=[];
 function setBWview(v, el){ BW_VIEW=v; if(el){el.parentElement.querySelectorAll('.pd-win-btn').forEach(function(b){b.classList.remove('on')});el.classList.add('on');} renderBWtable(); }
 function renderBW(){
   var fromEl=document.getElementById('bw-from'); var from=fromEl?fromEl.value:'2026-03-23';
-  var __PR=(window.__PID_ROWS&&window.__PID_ROWS.length?window.__PID_ROWS:(typeof PID_ROWS!=='undefined'?PID_ROWS:[])); var __BT=(window.__BW_TODAY||BW_TODAY); var rows=__PR.filter(function(r){ return r.b>=from && r.b<=__BT && r.s>=__BT; });
+  var __PR=(window.__PID_ROWS&&window.__PID_ROWS.length?window.__PID_ROWS:(typeof PID_ROWS!=='undefined'?PID_ROWS:[])); var __BT=(window.__BW_TODAY||BW_TODAY); var rows=__PR.filter(function(r){ return r.b>=from && r.b<=__BT; });
   var bystay={};
   rows.forEach(function(r){ var d=bystay[r.s]||(bystay[r.s]={rn:0,rev:0,bk:0}); d.rn+=r.n; d.rev+=r.rev; d.bk++; });
   var DOW=['Mo','Tu','We','Th','Fr','Sa','Su'];
@@ -8331,7 +8331,7 @@ function renderBW(){
   var totRn=BW_CACHE.reduce(function(s,x){return s+x.rn},0);
   var totRev=BW_CACHE.reduce(function(s,x){return s+x.rev},0);
   var k1=document.getElementById('bw-k-rn'); if(k1)k1.textContent=totRn;
-  var k2=document.getElementById('bw-k-bk'); if(k2){var _rv=null; if(window.__PID_BK){_rv=0; for(var _d in window.__PID_BK){ if(_d>=from&&_d<=__BT)_rv+=(window.__PID_BK[_d]||0); }} k2.textContent=(_rv!=null?_rv:rows.length);}
+  var k2=document.getElementById('bw-k-bk'); if(k2){var _rv=null; if(window.__PID_BK&&Object.keys(window.__PID_BK).length){_rv=0; for(var _d in window.__PID_BK){ if(_d>=from&&_d<=__BT)_rv+=(window.__PID_BK[_d]||0); }} k2.textContent=(_rv!=null?_rv:'—');}
   var k3=document.getElementById('bw-k-rev'); if(k3)k3.textContent=totRev.toLocaleString('es')+'\u20ac';
   var k4=document.getElementById('bw-k-adr'); if(k4)k4.textContent=(totRn?Math.round(totRev/totRn):0)+'\u20ac';
   mk('c-bw', {type:'bar', data:{
@@ -8373,7 +8373,7 @@ function renderBW(){
     if(hl) hl.innerHTML='Tu mejor día de captación sumó <span class="hi">'+best.rn+' noches</span> para el '+best.d+'. '+(concPct>=50?'El pick-up se concentra en pocos días fuertes.':'La captación está bastante repartida entre fechas.');
     // qué pasa
     var qp=document.getElementById('bw-ai-quepasa');
-    if(qp) qp.innerHTML='Desde el '+fmtFecha+' (últimos '+ventanaDias+' días) has captado <strong>'+totRn+' noches</strong> para estancias futuras, repartidas en <strong>'+nFechas+' fechas</strong>. El día más fuerte sumó '+best.rn+' noches ('+best.d+'), y el 20% de fechas más activas concentra el <strong>'+concPct+'%</strong> del volumen.';
+    if(qp) qp.innerHTML='Desde el '+fmtFecha+' (últimos '+ventanaDias+' días) has captado <strong>'+totRn+' noches</strong> repartidas en <strong>'+nFechas+' fechas</strong>. El día más fuerte sumó '+best.rn+' noches ('+best.d+'), y el 20% de fechas más activas concentra el <strong>'+concPct+'%</strong> del volumen.';
     // por qué
     var pq=document.getElementById('bw-ai-porque');
     if(pq) pq.innerHTML='Hay <strong>'+flojos+' fechas</strong> con solo 1-2 noches captadas — fechas que aún no despiertan demanda. Las fechas fuertes suelen coincidir con fines de semana, eventos o festivos.';
